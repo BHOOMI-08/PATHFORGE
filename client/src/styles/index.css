@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Reset margins, paddings, and enforce border-box sizing globally */
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background-darker text-slate-200 min-h-screen antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image: radial-gradient(
+      circle at top center,
+      rgba(79, 70, 229, 0.08) 0%,
+      rgba(2, 6, 23, 0) 65%
+    );
+  }
+
+  /* Custom selection color styling */
+  ::selection {
+    @apply bg-primary text-white;
+  }
+
+  /* Global Keyboard Focus Ring Styling */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background-darker;
+  }
+
+  /* Headings typography hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    @apply text-slate-100 font-semibold tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Reusable Gradient Background utilities */
+  .bg-gradient-brand-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  }
+
+  .bg-gradient-brand-accent {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  }
+
+  .bg-gradient-brand-dark {
+    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+  }
+
+  /* Custom Scrollbar design */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background-dark;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full hover:bg-primary transition-colors duration-150;
+  }
+}
