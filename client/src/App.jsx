@@ -1,9 +1,10 @@
 import AppRoutes from "./routes/AppRoutes";
 import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "./context/AuthContext.jsx";
 
 function App() {
   return (
-    <>
+    <AuthProvider>
       <AppRoutes />
       <Toaster 
         position="top-right" 
@@ -16,7 +17,7 @@ function App() {
           },
         }}
       />
-    </>
+    </AuthProvider>
   );
 }
 

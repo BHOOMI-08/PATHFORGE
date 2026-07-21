@@ -1,6 +1,6 @@
 const BASE_URL = "http://localhost:5000/api/v1";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(status, message, body) {
     super(message);
     this.name = "ApiError";
@@ -17,6 +17,7 @@ const request = async (endpoint, options = {}) => {
     params,
     timeout = 15000, // 15 seconds default timeout
     signal,
+    _retry = false, // Track retry attempt to prevent infinite loops
     ...customConfig
   } = options;
 
@@ -81,6 +82,34 @@ const request = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
+      // Intercept 401 and try silent token refresh
+      if (
+        response.status === 401 &&
+        !_retry &&
+        endpoint !== "/auth/login" &&
+        endpoint !== "/auth/refresh" &&
+        endpoint !== "/auth/register"
+      ) {
+        try {
+          // Attempt silent token refresh
+          const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (refreshResponse.ok) {
+            // Retry the original request configuration, setting _retry flag to true
+            return await request(endpoint, { ...options, _retry: true });
+          }
+        } catch (refreshErr) {
+          console.error("Silent token refresh error:", refreshErr);
+        }
+      }
+
       const errorMessage = responseData?.message || `Request failed with status ${response.status}`;
       throw new ApiError(response.status, errorMessage, responseData);
     }

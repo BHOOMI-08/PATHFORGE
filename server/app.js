@@ -36,16 +36,41 @@ if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
+import rateLimit from "express-rate-limit";
+
+// Rate limiting middleware (100 requests per 15 minutes)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again after 15 minutes",
+  },
+});
+
 // 6. Base Root Verification Route
 app.get("/", (req, res) => {
   res.status(STATUS_CODES.OK).json({
     message: "Hello PathForge AI",
-    status: "OK",
   });
 });
 
+// Apply rate limiter to all API endpoints
+app.use("/api/v1", limiter);
+
+import authRouter from "./routes/auth.routes.js";
+
 // 7. Root router placeholder for future API routes
 const apiRouter = express.Router();
+apiRouter.get("/", (req, res) => {
+  res.status(STATUS_CODES.OK).json({
+    message: "Hello PathForge AI API",
+    status: "OK",
+  });
+});
+apiRouter.use("/auth", authRouter);
 app.use("/api/v1", apiRouter);
 
 // 8. Fallback for route not found
