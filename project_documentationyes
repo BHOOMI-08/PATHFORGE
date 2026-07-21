@@ -1,0 +1,194 @@
+# PathForge AI — Complete End-to-End System Documentation
+
+## Executive Overview
+**PathForge AI** is an AI-powered resume auditing and career guidance platform built using the MERN stack (**MongoDB**, **Express.js**, **React 19**, **Node.js**) with **TailwindCSS** and **Vite**.
+
+The project implements a secure, scalable authentication system, database models, session restoration, JWT token rotation with HTTP-only cookies, route protection, and a modern responsive dashboard interface.
+
+---
+
+## Technical Stack Summary
+
+| Domain | Technology / Library | Purpose |
+| :--- | :--- | :--- |
+| **Backend Core** | Node.js + Express v4 | RESTful API framework |
+| **Database & ORM** | MongoDB Atlas + Mongoose v8 | Document database & schema validation |
+| **Authentication** | JSON Web Tokens (`jsonwebtoken`) + `bcryptjs` | Access/Refresh token handling & password hashing |
+| **Cookies & Security** | `cookie-parser`, `helmet`, `cors`, `express-rate-limit` | Secure HTTP-only cookies, CORS, headers, rate limiting |
+| **Frontend Core** | React v19 + Vite v8 | Client UI rendering & fast build setup |
+| **Routing** | React Router v7 | Dynamic client-side routing & guards |
+| **Form & Validation** | React Hook Form + Zod | Schema validation matching server rules |
+| **Styling & Icons** | TailwindCSS v3 + Lucide React | Modern dark-mode UI design system & icons |
+| **Notifications** | React Hot Toast | Real-time toast feedback |
+
+---
+
+## System Architecture & Data Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User Browser
+    participant React as React Client (AuthContext)
+    participant API as Express REST API
+    participant DB as MongoDB Database
+
+    Note over User, DB: 1. Registration Flow
+    User->>React: Submit Name, Email, Password
+    React->>API: POST /api/v1/auth/register
+    API->>DB: Check Duplicate Email & Create User
+    API->>DB: Automatically Create Linked Settings Document
+    API-->>React: 201 Created (Sanitized User)
+    React-->>User: Toast success -> Redirect to /login
+
+    Note over User, DB: 2. Login Flow
+    User->>React: Submit Credentials
+    React->>API: POST /api/v1/auth/login
+    API->>DB: Verify Password & Store RefreshToken
+    API-->>React: 200 OK + Set HTTP-only Access & Refresh Cookies
+    React->>API: GET /api/v1/auth/me (Immediate Validation)
+    API-->>React: 200 OK (Current User Object)
+    React-->>User: Set Auth state -> Redirect to /dashboard
+
+    Note over User, DB: 3. Session Restoration & Silent Refresh
+    User->>React: Reload Page / Open Application
+    React->>API: GET /api/v1/auth/me
+    alt Access Token Expired (401)
+        React->>API: POST /api/v1/auth/refresh
+        API->>DB: Verify RefreshToken & Rotate Tokens
+        API-->>React: Set New Rotated Token Cookies
+        React->>API: Retry GET /api/v1/auth/me
+    end
+    API-->>React: 200 OK (User Object)
+    React-->>User: Session restored (isAuthenticated = true)
+```
+
+---
+
+## 1. Backend Architecture (`/server`)
+
+### Directory Organization
+```text
+server/
+├── config/
+│   └── db.js                 # Mongoose connection setup for MongoDB Atlas
+├── constants/
+│   ├── apiMessages.js        # Standardized API response text constants
+│   ├── prompts.js            # Prompt templates for future AI features
+│   ├── roles.js              # User roles ('user', 'admin')
+│   └── statusCodes.js        # HTTP status code map
+├── controllers/
+│   └── auth.controller.js    # Auth HTTP request handlers (register, login, logout, refresh, me)
+├── middleware/
+│   ├── auth.middleware.js    # JWT verification & req.user attachment
+│   └── error.middleware.js   # Global error handling middleware
+├── models/
+│   ├── User.model.js         # Mongoose User schema (password hashing, comparePassword)
+│   └── Settings.model.js     # Mongoose Settings schema linked to User
+├── routes/
+│   └── auth.routes.js        # Express router mapping /api/v1/auth endpoints
+├── services/
+│   └── auth.service.js       # Business logic (register, login, logout, token rotation)
+├── utils/
+│   ├── ApiError.js           # Custom ApiError class with HTTP status
+│   ├── ApiResponse.js        # Standardized API response format
+│   ├── asyncHandler.js       # Express async route wrapper
+│   ├── cookie.util.js        # HTTP-only cookie setting/clearing helpers
+│   └── token.util.js         # JWT generation and verification methods
+├── validators/
+│   └── auth.validator.js     # Zod schema validation middleware for requests
+├── .env                      # Environment variables (PORT, MONGO_URI, JWT secrets)
+├── app.js                    # Express app initialization & global middlewares
+└── server.js                 # Node HTTP server entry point
+```
+
+### Database Models
+
+#### `User` Schema ([User.model.js](file:///e:/PATHFORGE/server/models/User.model.js))
+- `name`: String, required, trimmed, min 2, max 50 chars.
+- `email`: String, required, lowercase, unique, trimmed, indexed.
+- `password`: String, required, hidden by default (`select: false`), hashed automatically using `bcryptjs` in a `pre("save")` hook.
+- `role`: String, enum `['user', 'admin']`, default `'user'`.
+- `refreshToken`: String, hidden by default (`select: false`), holds active refresh token for rotation.
+- Methods: `comparePassword(candidatePassword)` returns boolean.
+
+#### `Settings` Schema ([Settings.model.js](file:///e:/PATHFORGE/server/models/Settings.model.js))
+- `user`: ObjectId, ref `'User'`, required, unique, indexed.
+- `theme`: String, enum `['dark', 'light', 'system']`, default `'dark'`.
+- `notifications`: Object with email and in-app toggles.
+- Automatically generated upon user registration in `auth.service.js`.
+
+### API Endpoints Reference
+
+| Method | Endpoint | Protection | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register` | Public | Validates payload, checks unique email, creates User + Settings documents. |
+| `POST` | `/api/v1/auth/login` | Public | Verifies credentials, stores refresh token, sets `accessToken` & `refreshToken` HTTP-only cookies. |
+| `POST` | `/api/v1/auth/refresh` | Public | Validates incoming refresh cookie, checks DB match, performs **Refresh Token Rotation**, updates cookies. |
+| `POST` | `/api/v1/auth/logout` | Public/Auth | Clears `refreshToken` in DB and deletes HTTP-only auth cookies. |
+| `GET` | `/api/v1/auth/me` | Protected (`authMiddleware`) | Returns current authenticated user object. |
+
+---
+
+## 2. Frontend Architecture (`/client`)
+
+### Directory Organization
+```text
+client/
+├── src/
+│   ├── components/
+│   │   └── ui/
+│   │       └── LoadingSpinner.jsx # Reusable SVG loading spinner
+│   ├── constants/
+│   │   └── navigation.js          # Sidebar links configuration
+│   ├── context/
+│   │   └── AuthContext.jsx        # Auth state provider (user, isAuthenticated, isLoading)
+│   ├── layouts/
+│   │   ├── DashboardLayout.jsx    # Workspace layout (Sidebar, Navbar, Profile Dropdown)
+│   │   └── RootLayout.jsx         # Public pages container & navbar
+│   ├── pages/
+│   │   ├── Login.jsx              # Login page with Zod validation
+│   │   └── Register.jsx           # Registration page with Zod validation
+│   ├── routes/
+│   │   └── AppRoutes.jsx          # PublicRoute, ProtectedRoute & Route definitions
+│   ├── services/
+│   │   └── auth.service.js        # API service wrapper for auth endpoints
+│   ├── utils/
+│   │   └── api.js                 # Reusable fetch client with 401 silent refresh interceptor
+│   ├── App.jsx                    # Root app wrapper (AuthProvider, AppRoutes, Toaster)
+│   └── main.jsx                   # React DOM entry point with BrowserRouter
+├── package.json                   # React 19, Vite, Tailwind, Lucide dependencies
+├── postcss.config.js              # PostCSS setup
+├── tailwind.config.js             # Custom Tailwind color palette & font system
+└── vite.config.js                 # Vite bundler configuration
+```
+
+### Key Frontend Features
+
+1. **Authentication Context (`AuthContext.jsx`)**:
+   - `user`: Holds current authenticated user object (`null` if logged out).
+   - `isAuthenticated`: Boolean state indicating login status.
+   - `isLoading`: Boolean state preventing render flickers during auth checks.
+   - Functions exposed: `login`, `logout`, `fetchCurrentUser`, `refreshUser`.
+   - **Session Restoration**: Runs `fetchCurrentUser()` on initial mount. If `/me` fails with 401, attempts silent refresh (`POST /auth/refresh`) before setting unauthenticated state.
+   - **Login**: Calls `authService.login()`, then immediately executes `fetchCurrentUser()` to retrieve user state exclusively from `/me`.
+   - **Logout**: Clears state, calls backend `/logout`, shows toast, and redirects to `/login`.
+
+2. **Route Guards (`AppRoutes.jsx`)**:
+   - `<ProtectedRoute>`: Blocks logged-out users from accessing `/dashboard/*`.
+   - `<PublicRoute>`: Redirects logged-in users away from `/login` and `/register` directly to `/dashboard`.
+
+3. **Dashboard Layout & Profile Dropdown (`DashboardLayout.jsx`)**:
+   - Solid backdrop (`bg-slate-900`) and high z-index (`z-50`) positioning.
+   - Outside click handling using `mousedown` event listeners.
+   - Displays user details (`user.name`, `user.email`) directly from `AuthContext`.
+   - Sign Out button with state lock (`isLoggingOut`) to prevent duplicate submissions.
+
+---
+
+## 3. Verification & Operational Status
+
+- **Frontend Server**: Vite Dev Server running at `http://localhost:5173/`
+- **Backend API**: Express Node.js Server running at `http://localhost:5000/`
+- **Database Status**: Connected successfully to MongoDB Atlas database `pathforge`.
+- **Production Build**: Validated via `npm run build` with 0 compilation errors.

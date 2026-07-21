@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Link } from "react-router-dom";
 import RootLayout from "../layouts/RootLayout";
 import Register from "../pages/Register";
 import Login from "../pages/Login";
+import Dashboard from "../pages/Dashboard";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../context/AuthContext.jsx";
 import LoadingSpinner from "../components/ui/LoadingSpinner.jsx";
@@ -149,7 +150,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardHome />} />
+        <Route index element={<Dashboard />} />
         <Route path="resumes" element={<DashboardPlaceholder title="Resume Manager" />} />
         <Route path="ats" element={<DashboardPlaceholder title="ATS Analyzer" />} />
         <Route path="jobs" element={<DashboardPlaceholder title="Job Matcher" />} />
