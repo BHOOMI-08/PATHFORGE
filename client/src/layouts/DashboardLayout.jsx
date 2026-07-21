@@ -29,14 +29,14 @@ export const DashboardLayout = () => {
         setIsProfileDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
   }, []);
 
   const handleLogout = async () => {
     setIsProfileDropdownOpen(false);
     await logout();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   // Compute breadcrumbs from active path
@@ -214,7 +214,7 @@ export const DashboardLayout = () => {
 
                 {/* Profile menu dropdown container */}
                 {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-52 origin-top-right rounded-xl border border-slate-800 bg-slate-900 p-1.5 shadow-2xl z-50">
+                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-slate-800 bg-slate-900 p-1.5 shadow-2xl z-50">
                     <div className="px-3 py-2 border-b border-slate-800 mb-1">
                       <p className="text-xs text-slate-500 font-medium">Logged in as</p>
                       <p className="text-sm font-semibold text-slate-200 truncate">
@@ -238,7 +238,12 @@ export const DashboardLayout = () => {
                       <span>App Configuration</span>
                     </Link>
                     <button
-                      onClick={handleLogout}
+                      type="button"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLogout();
+                      }}
                       className="w-full flex items-center space-x-2 rounded-lg px-3 py-2 text-sm text-danger hover:bg-red-500/10 hover:text-red-400 transition-colors text-left"
                     >
                       <Icons.LogOut size={16} />

@@ -56,14 +56,13 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       await apiLogout();
+    } catch (error) {
+      console.error("Logout backend notification error:", error);
+    } finally {
       setUser(null);
       setIsAuthenticated(false);
-      toast.success("Session closed successfully.");
-    } catch (error) {
-      const msg = error.body?.message || error.message || "Logout failed.";
-      toast.error(msg);
-    } finally {
       setIsLoading(false);
+      toast.success("Session closed successfully.");
     }
   };
 
