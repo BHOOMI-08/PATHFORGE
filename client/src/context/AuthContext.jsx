@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { login as apiLogin, logout as apiLogout, getCurrentUser } from "../services/auth.service.js";
+import { useNavigate } from "react-router-dom";
+import { login as apiLogin, logout as apiLogout, refresh as apiRefresh, getCurrentUser } from "../services/auth.service.js";
 import { toast } from "react-hot-toast";
 
 const AuthContext = createContext(null);
@@ -7,20 +8,32 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Default to true during startup validation
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Function to fetch the current user's profile context from backend
+  // Single source of truth for loading and updating current user authentication state
   const fetchCurrentUser = async () => {
+    setIsLoading(true);
     try {
       const response = await getCurrentUser();
-      const loggedUser = response.data.user;
+      const loggedUser = response.data?.user || response.user;
       setUser(loggedUser);
       setIsAuthenticated(true);
       return loggedUser;
     } catch (error) {
-      setUser(null);
-      setIsAuthenticated(false);
-      return null;
+      // On failure/unauthorized error, attempt silent refresh
+      try {
+        await apiRefresh();
+        const retryResponse = await getCurrentUser();
+        const loggedUser = retryResponse.data?.user || retryResponse.user;
+        setUser(loggedUser);
+        setIsAuthenticated(true);
+        return loggedUser;
+      } catch (refreshError) {
+        setUser(null);
+        setIsAuthenticated(false);
+        return null;
+      }
     } finally {
       setIsLoading(false);
     }
@@ -29,7 +42,7 @@ export const AuthProvider = ({ children }) => {
   // Alias for backward compatibility
   const refreshUser = fetchCurrentUser;
 
-  // Perform handshake / session check on initial load
+  // Session restoration on initial application load
   useEffect(() => {
     fetchCurrentUser();
   }, []);
@@ -38,10 +51,9 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       const response = await apiLogin(email, password);
-      const loggedUser = response.data.user;
-      setUser(loggedUser);
-      setIsAuthenticated(true);
-      toast.success(response.message || "Welcome back!");
+      // Immediately call fetchCurrentUser after successful login instead of trusting returned payload directly
+      const loggedUser = await fetchCurrentUser();
+      toast.success(response.message || "Logged in successfully!");
       return loggedUser;
     } catch (error) {
       const msg = error.body?.message || error.message || "Login failed.";
@@ -57,12 +69,13 @@ export const AuthProvider = ({ children }) => {
     try {
       await apiLogout();
     } catch (error) {
-      console.error("Logout backend notification error:", error);
+      console.error("Logout backend call failed:", error);
     } finally {
       setUser(null);
       setIsAuthenticated(false);
       setIsLoading(false);
-      toast.success("Session closed successfully.");
+      toast.success("Logged out successfully.");
+      navigate("/login", { replace: true });
     }
   };
 
@@ -76,8 +89,6 @@ export const AuthProvider = ({ children }) => {
         logout,
         fetchCurrentUser,
         refreshUser,
-        setUser,
-        setIsAuthenticated,
       }}
     >
       {children}
@@ -94,3 +105,4 @@ export const useAuth = () => {
 };
 
 export default AuthContext;
+
