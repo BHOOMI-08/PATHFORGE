@@ -31,3 +31,7 @@ yarn-error.log*
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Documentation task files
+task*.md
+task.md
