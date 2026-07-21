@@ -62,6 +62,7 @@ app.use("/api/v1", limiter);
 
 import authRouter from "./routes/auth.routes.js";
 import careerRouter from "./routes/career.routes.js";
+import resumeRouter from "./routes/resume.routes.js";
 
 // 7. Root router placeholder for API routes
 const apiRouter = express.Router();
@@ -73,6 +74,7 @@ apiRouter.get("/", (req, res) => {
 });
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/career-dna", careerRouter);
+apiRouter.use("/resumes", resumeRouter);
 app.use("/api/v1", apiRouter);
 
 // 8. Fallback for route not found

@@ -48,6 +48,8 @@ const request = async (endpoint, options = {}) => {
   let serializedBody = body;
   if (body && typeof body === "object" && !(body instanceof FormData)) {
     serializedBody = JSON.stringify(body);
+  } else if (body instanceof FormData) {
+    delete configHeaders["Content-Type"];
   }
 
   // Setup AbortController for request timeouts
