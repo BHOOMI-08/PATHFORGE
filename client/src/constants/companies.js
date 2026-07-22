@@ -1,0 +1,58 @@
+export const TARGET_COMPANIES = [
+  {
+    id: "google",
+    name: "Google",
+    role: "Software Development Engineer (SDE)",
+    badgeColor: "from-blue-500/20 to-emerald-500/20 border-blue-500/30 text-blue-400",
+    glowColor: "shadow-blue-500/20",
+    focus: "Algorithms, Distributed Scale, System Design & Clean Code",
+    tagline: "High hiring bar focusing on DSA rigor and global scalability.",
+  },
+  {
+    id: "amazon",
+    name: "Amazon",
+    role: "Software Development Engineer (SDE I/II)",
+    badgeColor: "from-amber-500/20 to-orange-500/20 border-amber-500/30 text-amber-400",
+    glowColor: "shadow-amber-500/20",
+    focus: "Customer Obsession, Ownership & Leadership Principles",
+    tagline: "Evaluates technical depth alongside 16 Leadership Principles.",
+  },
+  {
+    id: "microsoft",
+    name: "Microsoft",
+    role: "Software Engineer (SWE)",
+    badgeColor: "from-indigo-500/20 to-sky-500/20 border-indigo-500/30 text-sky-400",
+    glowColor: "shadow-sky-500/20",
+    focus: "Clean Architecture, Cloud Integration & Systems Engineering",
+    tagline: "Emphasizes solid OOP principles, testing, and enterprise cloud.",
+  },
+  {
+    id: "flipkart",
+    name: "Flipkart",
+    role: "SDE - High Concurrency Systems",
+    badgeColor: "from-yellow-500/20 to-blue-500/20 border-yellow-500/30 text-yellow-400",
+    glowColor: "shadow-yellow-500/20",
+    focus: "E-Commerce Scale, Low-Latency Microservices & DB Tuning",
+    tagline: "Focuses on handling flash sale concurrency and fault tolerance.",
+  },
+  {
+    id: "atlassian",
+    name: "Atlassian",
+    role: "Software Engineer - Product Systems",
+    badgeColor: "from-blue-600/20 to-cyan-500/20 border-cyan-500/30 text-cyan-400",
+    glowColor: "shadow-cyan-500/20",
+    focus: "Collaboration Tools, Clean Modular Design & Craftsmanship",
+    tagline: "Values code readability, collaborative mindset, and unit testing.",
+  },
+  {
+    id: "meta",
+    name: "Meta",
+    role: "Software Engineer (Production & Product)",
+    badgeColor: "from-blue-500/20 to-purple-500/20 border-purple-500/30 text-purple-400",
+    glowColor: "shadow-purple-500/20",
+    focus: "Rapid Iteration, System Performance & High-Impact Features",
+    tagline: "Evaluates fast problem solving and massive user-base optimization.",
+  },
+];
+
+export default TARGET_COMPANIES;

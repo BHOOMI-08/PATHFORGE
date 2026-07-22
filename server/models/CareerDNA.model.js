@@ -24,6 +24,13 @@ const careerDNASchema = new mongoose.Schema(
       trim: true,
       default: "Computer Science / IT",
     },
+    educationDetails: {
+      degree: { type: String, default: "B.Tech / B.E." },
+      branch: { type: String, default: "Computer Science & Engineering" },
+      collegeName: { type: String, default: "" },
+      currentYear: { type: String, default: "3rd Year" },
+      graduationYear: { type: String, default: "2026" },
+    },
     programmingLanguages: {
       type: [String],
       default: [],
@@ -45,6 +52,10 @@ const careerDNASchema = new mongoose.Schema(
       type: String,
       enum: ["Entry", "Mid", "Senior", "Lead", "Executive"],
       default: "Entry",
+    },
+    experienceDetails: {
+      types: { type: [String], default: ["Fresher"] },
+      years: { type: String, default: "0 Years" },
     },
     projectsExperience: {
       type: String,
@@ -68,6 +79,14 @@ const careerDNASchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    softSkillRatings: {
+      communication: { type: Number, default: 4 },
+      leadership: { type: Number, default: 3 },
+      problemSolving: { type: Number, default: 4 },
+      teamwork: { type: Number, default: 4 },
+      confidence: { type: Number, default: 3 },
+      timeManagement: { type: Number, default: 4 },
+    },
     targetRoles: {
       type: [String],
       default: [],
@@ -86,6 +105,15 @@ const careerDNASchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    learningPreferences: {
+      hoursPerDay: { type: Number, default: 3 },
+      learningSpeed: { type: String, enum: ["Slow", "Medium", "Fast"], default: "Medium" },
+      learningStyle: { type: String, default: "Projects" },
+    },
+    careerChallenges: {
+      type: [String],
+      default: [],
+    },
     targetSalary: {
       min: {
         type: Number,
@@ -98,6 +126,10 @@ const careerDNASchema = new mongoose.Schema(
       currency: {
         type: String,
         default: "INR",
+      },
+      bandLabel: {
+        type: String,
+        default: "8–12 LPA",
       },
     },
     preferredCompanies: {
@@ -136,3 +168,4 @@ careerDNASchema.pre("save", function (next) {
 const CareerDNA = mongoose.model("CareerDNA", careerDNASchema);
 
 export default CareerDNA;
+export { CareerDNA };

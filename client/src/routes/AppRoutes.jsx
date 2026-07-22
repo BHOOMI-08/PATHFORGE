@@ -5,6 +5,17 @@ import Register from "../pages/Register";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import ResumeManager from "../pages/ResumeManager";
+import ATSAnalyzer from "../pages/ATSAnalyzer";
+import JobMatcher from "../pages/JobMatcher";
+import Roadmap from "../pages/Roadmap";
+import AIMentor from "../pages/AIMentor";
+import Analytics from "../pages/Analytics";
+import RecruiterSimulator from "../pages/RecruiterSimulator";
+import ResumeEvolution from "../pages/ResumeEvolution";
+import CareerTwin from "../pages/CareerTwin";
+import OpportunityRadar from "../pages/OpportunityRadar";
+import AICEOMode from "../pages/AICEOMode";
+import ProfileSettings from "../pages/ProfileSettings";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../context/AuthContext.jsx";
 import LoadingSpinner from "../components/ui/LoadingSpinner.jsx";
@@ -123,7 +134,14 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Pages */}
       <Route path="/" element={<RootLayout />}>
-        <Route index element={<Home />} />
+        <Route
+          index
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
         <Route
           path="register"
           element={
@@ -153,13 +171,18 @@ const AppRoutes = () => {
       >
         <Route index element={<Dashboard />} />
         <Route path="resumes" element={<ResumeManager />} />
-        <Route path="ats" element={<DashboardPlaceholder title="ATS Analyzer" />} />
-        <Route path="jobs" element={<DashboardPlaceholder title="Job Matcher" />} />
-        <Route path="roadmap" element={<DashboardPlaceholder title="Career Roadmap" />} />
-        <Route path="mentor" element={<DashboardPlaceholder title="AI Mentor Agent" />} />
-        <Route path="analytics" element={<DashboardPlaceholder title="Workspace Analytics" />} />
-        <Route path="settings" element={<DashboardPlaceholder title="App Configuration" />} />
-        <Route path="profile" element={<DashboardPlaceholder title="Profile Settings" />} />
+        <Route path="ats" element={<ATSAnalyzer />} />
+        <Route path="jobs" element={<JobMatcher />} />
+        <Route path="roadmap" element={<Roadmap />} />
+        <Route path="mentor" element={<AIMentor />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="recruiter" element={<RecruiterSimulator />} />
+        <Route path="resume-evolution" element={<ResumeEvolution />} />
+        <Route path="career-twin" element={<CareerTwin />} />
+        <Route path="opportunity-radar" element={<OpportunityRadar />} />
+        <Route path="ceo-mode" element={<AICEOMode />} />
+        <Route path="settings" element={<ProfileSettings />} />
+        <Route path="profile" element={<ProfileSettings />} />
       </Route>
     </Routes>
   );

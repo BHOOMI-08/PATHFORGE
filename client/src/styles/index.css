@@ -1,76 +1,85 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* Reset margins, paddings, and enforce border-box sizing globally */
-  *, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    scroll-behavior: smooth;
-  }
-
   body {
-    @apply bg-background-darker text-slate-200 min-h-screen antialiased;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-image: radial-gradient(
-      circle at top center,
-      rgba(79, 70, 229, 0.08) 0%,
-      rgba(2, 6, 23, 0) 65%
-    );
-  }
-
-  /* Custom selection color styling */
-  ::selection {
-    @apply bg-primary text-white;
-  }
-
-  /* Global Keyboard Focus Ring Styling */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background-darker;
-  }
-
-  /* Headings typography hierarchy */
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
-    @apply text-slate-100 font-semibold tracking-tight;
+    background-color: #020817;
+    color: #F8FAFC;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(at 15% 15%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+      radial-gradient(at 85% 85%, rgba(52, 211, 153, 0.07) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(16, 38, 61, 0.5) 0px, transparent 100%);
+    background-attachment: fixed;
   }
 }
 
-@layer utilities {
-  /* Reusable Gradient Background utilities */
-  .bg-gradient-brand-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  }
+/* Glassmorphism Utility Classes */
+.glass-panel {
+  background: rgba(16, 38, 61, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
 
-  .bg-gradient-brand-accent {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-  }
+.glass-card {
+  background: rgba(16, 38, 61, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1.5rem;
+}
 
-  .bg-gradient-brand-dark {
-    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
-  }
+.glass-card:hover {
+  background: rgba(19, 45, 71, 0.8);
+  border-color: rgba(167, 243, 208, 0.2);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 16px 45px -10px rgba(0, 0, 0, 0.5);
+}
 
-  /* Custom Scrollbar design */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+.glass-input {
+  background: rgba(4, 18, 32, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #F8FAFC;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
 
-  ::-webkit-scrollbar-track {
-    @apply bg-background-dark;
-  }
+.glass-input:focus {
+  outline: none;
+  border-color: #6EE7C8;
+  box-shadow: 0 0 0 3px rgba(110, 231, 200, 0.15);
+}
 
-  ::-webkit-scrollbar-thumb {
-    @apply bg-slate-800 rounded-full hover:bg-primary transition-colors duration-150;
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020817;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #071A2C;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #34D399;
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

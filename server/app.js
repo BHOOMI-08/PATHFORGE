@@ -63,6 +63,17 @@ app.use("/api/v1", limiter);
 import authRouter from "./routes/auth.routes.js";
 import careerRouter from "./routes/career.routes.js";
 import resumeRouter from "./routes/resume.routes.js";
+import atsRouter from "./routes/ats.routes.js";
+import jobMatchRouter from "./routes/jobMatch.routes.js";
+import roadmapRouter from "./routes/roadmap.routes.js";
+import mentorRouter from "./routes/mentor.routes.js";
+import dashboardRouter from "./routes/dashboard.routes.js";
+import recruiterRouter from "./routes/recruiter.routes.js";
+import evolutionRouter from "./routes/evolution.routes.js";
+import careerTwinRouter from "./routes/careerTwin.routes.js";
+import opportunityRadarRouter from "./routes/opportunityRadar.routes.js";
+import ceoModeRouter from "./routes/ceoMode.routes.js";
+import settingsRouter from "./routes/settings.routes.js";
 
 // 7. Root router placeholder for API routes
 const apiRouter = express.Router();
@@ -75,6 +86,17 @@ apiRouter.get("/", (req, res) => {
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/career-dna", careerRouter);
 apiRouter.use("/resumes", resumeRouter);
+apiRouter.use("/ats", atsRouter);
+apiRouter.use("/job-match", jobMatchRouter);
+apiRouter.use("/roadmap", roadmapRouter);
+apiRouter.use("/mentor/session", mentorRouter);
+apiRouter.use("/dashboard", dashboardRouter);
+apiRouter.use("/recruiter", recruiterRouter);
+apiRouter.use("/resume-evolution", evolutionRouter);
+apiRouter.use("/career-twin", careerTwinRouter);
+apiRouter.use("/opportunity-radar", opportunityRadarRouter);
+apiRouter.use("/ceo-mode", ceoModeRouter);
+apiRouter.use("/settings", settingsRouter);
 app.use("/api/v1", apiRouter);
 
 // 8. Fallback for route not found
