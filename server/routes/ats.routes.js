@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { analyzeResume, getLatestATSAnalysis, getATSHistory, getATSAnalysisById } from "../controllers/ats.controller.js";
 const router=Router(); router.use(authMiddleware);

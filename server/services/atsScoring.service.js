@@ -1,4 +1,4 @@
-﻿import { normalizeScore } from "../utils/jsonValidator.js";
+import { normalizeScore } from "../utils/jsonValidator.js";
 const STOP = new Set("a an and are as at be by for from has have in is it of on or our that the their this to we will with you your experience required preferred role team work years".split(" "));
 const normalize = (v) => String(v).toLowerCase().replace(/node\s*\.?js/g,"node.js").replace(/react\.?js/g,"react").replace(/mongo\s*db/g,"mongodb").replace(/\s+/g," ").trim();
 export const extractKeywords = (text) => [...new Set((normalize(text).match(/[a-z][a-z0-9+#.]*/g) || []).filter((x) => x.length > 1 && !STOP.has(x)))].slice(0,100);

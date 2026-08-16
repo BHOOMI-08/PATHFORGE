@@ -1,4 +1,4 @@
-﻿import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_PROMPTS } from "../../constants/prompts.js";
 import dotenv from "dotenv";
 

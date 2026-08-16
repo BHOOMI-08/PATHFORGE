@@ -1,4 +1,4 @@
-﻿import test from "node:test"; import assert from "node:assert/strict";
+import test from "node:test"; import assert from "node:assert/strict";
 import { calculateDeterministicScores, combineATSResult } from "../services/atsScoring.service.js";
 import { cleanAndParseJson, validateATSSemanticResult } from "../utils/jsonValidator.js";
 const semantic={semanticScore:80,strengths:["Relevant backend work"],weaknesses:[],recommendations:["Add metrics"],summary:"Relevant candidate",formattingScore:90,impactScore:70,parsingFailures:[],formattingAdvice:[],skillGapAdvice:[],actionItems:[]};

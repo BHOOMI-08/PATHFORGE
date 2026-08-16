@@ -1,4 +1,4 @@
-﻿import mongoose from "mongoose";
+import mongoose from "mongoose";
 const atsAnalysisSchema=new mongoose.Schema({
  user:{type:mongoose.Schema.Types.ObjectId,ref:"User",required:true,index:true}, resume:{type:mongoose.Schema.Types.ObjectId,ref:"Resume",required:true,index:true},
  jobDescription:{type:String,required:true,minlength:80,maxlength:12000}, atsScore:{type:Number,required:true,min:0,max:100},

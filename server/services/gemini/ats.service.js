@@ -1,4 +1,4 @@
-﻿import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import ApiError from "../../utils/ApiError.js";
 import { cleanAndParseJson, validateATSSemanticResult } from "../../utils/jsonValidator.js";
 const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";

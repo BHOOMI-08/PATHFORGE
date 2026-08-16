@@ -1,4 +1,4 @@
-﻿import multer from "multer";
+import multer from "multer";
 import ApiError from "../utils/ApiError.js";
 import STATUS_CODES from "../constants/statusCodes.js";
 

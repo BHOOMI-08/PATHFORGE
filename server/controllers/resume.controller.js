@@ -1,4 +1,4 @@
-﻿import Resume from "../models/Resume.model.js";
+import Resume from "../models/Resume.model.js";
 import mongoose from "mongoose";
 import { uploadToCloudinary, deleteFromCloudinary } from "../services/storage/cloudinary.service.js";
 import { extractTextFromPDF } from "../services/parser/pdfParser.service.js";

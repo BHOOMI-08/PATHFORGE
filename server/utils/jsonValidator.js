@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 
 const score = z.coerce.number().finite().transform((v) => Math.round(Math.min(100, Math.max(0, v))));
 const list = z.array(z.string().trim().min(1).max(500)).max(50).default([]);
