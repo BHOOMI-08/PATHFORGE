@@ -1,280 +1,239 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import toast from "react-hot-toast";
 import {
-  BarChart3,
-  TrendingUp,
-  Sparkles,
-  Award,
-  FileCheck,
-  Target,
-  MessageSquare,
-  Clock,
-  Bell,
-  CheckCircle2,
-  AlertCircle,
   Activity,
+  Award,
+  BarChart3,
+  Clock,
+  FileCheck,
   Layers,
-  FileText,
+  MessageSquare,
+  RefreshCw,
+  Sparkles,
+  Target,
+  TrendingUp,
 } from "lucide-react";
-import LoadingSpinner from "../components/ui/LoadingSpinner";
-import ScoreCircle from "../components/ui/ScoreCircle";
+import ActivityBarChart from "../components/charts/ActivityBarChart";
 import ATSLineChart from "../components/charts/ATSLineChart";
 import SkillRadarChart from "../components/charts/SkillRadarChart";
-import ActivityBarChart from "../components/charts/ActivityBarChart";
+import LoadingSpinner from "../components/ui/LoadingSpinner";
 import { dashboardService } from "../services/dashboard.service";
+
+const READINESS_LABELS = {
+  ats: "ATS",
+  interview: "Interview",
+  roadmap: "Roadmap",
+  recruiter: "Recruiter",
+  jobMatch: "Job Match",
+};
+
+const getErrorMessage = (error) => {
+  if (error?.status === 401) return "Your session has expired. Please sign in again.";
+  if (error?.status === 403) return "You do not have access to these analytics.";
+  if (error?.status >= 500) return "PathForge analytics are temporarily unavailable. Please try again.";
+  if (error instanceof TypeError) return "Unable to reach PathForge services. Check your connection and try again.";
+  return error?.body?.message || error?.message || "Unable to load analytics.";
+};
+
+const ScoreValue = ({ value }) => (
+  <span className="font-display text-4xl font-black text-slate-100">
+    {value === null || value === undefined ? "—" : `${value}%`}
+  </span>
+);
+
+const ProgressBar = ({ value, color }) => (
+  <div className="h-2 w-full overflow-hidden rounded-full border border-slate-800 bg-slate-950">
+    <div className={`h-full rounded-full ${color}`} style={{ width: `${value ?? 0}%` }} />
+  </div>
+);
+
+const formatActivityDate = (value) => new Date(value).toLocaleDateString(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
 
 export const Analytics = () => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, []);
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
+    setError("");
     try {
-      const res = await dashboardService.getDashboardStats();
-      if (res?.data) {
-        setStats(res.data);
-      }
-    } catch (err) {
-      console.error("Failed to load analytics stats:", err);
-      toast.error("Failed to load analytics dashboard.");
+      const payload = await dashboardService.getDashboardStats();
+      if (!payload?.summary) throw new Error("The analytics response was invalid.");
+      setStats(payload);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMarkNotificationRead = async (id) => {
-    try {
-      await dashboardService.markNotificationRead(id);
-      setStats((prev) => ({
-        ...prev,
-        notifications: prev.notifications.filter((n) => n._id !== id),
-      }));
-      toast.success("Notification marked as read");
-    } catch (err) {
-      toast.error("Failed to update notification");
-    }
-  };
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
         <LoadingSpinner />
-        <p className="text-slate-400 text-sm">Loading consolidated workspace analytics...</p>
+        <p className="text-sm text-slate-400">Loading consolidated workspace analytics...</p>
       </div>
     );
   }
 
-  const counts = stats?.counts || { resumes: 0, jobMatches: 0, completedInterviews: 0 };
-  const latestScores = stats?.latestScores || { atsScore: 0, jobMatchScore: 0, interviewScore: 0, roadmapProgress: 0 };
-  const charts = stats?.charts || { atsTrend: [], skillDimensions: [] };
-  const activityLogs = stats?.activityLogs || [];
-  const notifications = stats?.notifications || [];
+  if (error) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center text-center">
+        <Activity className="h-10 w-10 text-rose-400" />
+        <h1 className="mt-4 font-display text-2xl font-bold text-slate-100">Analytics unavailable</h1>
+        <p className="mt-2 text-sm text-slate-400">{error}</p>
+        <button type="button" onClick={fetchAnalyticsData} className="mt-5 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800">
+          <RefreshCw className="h-4 w-4" /> Retry analytics
+        </button>
+      </div>
+    );
+  }
+
+  const summary = stats.summary;
+  const readiness = summary.careerReadiness;
+  const activities = stats.activities || [];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 animate-fade-in">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-accent/10 border border-accent/30 rounded-full text-xs font-semibold text-accent-light flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Workspace Telemetry
-          </span>
-        </div>
-        <h1 className="text-3xl font-display font-extrabold text-slate-100 mt-2 flex items-center gap-3">
-          Analytics & Readiness Dashboard
-        </h1>
-        <p className="text-slate-400 mt-1">
-          Consolidated progress metrics, ATS score iterations, mock interview evaluations, and audit logs.
-        </p>
+    <div className="mx-auto max-w-7xl space-y-8 pb-12 animate-fade-in">
+      <header>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent-light">
+          <Sparkles className="h-3.5 w-3.5" /> Workspace intelligence
+        </span>
+        <h1 className="mt-2 font-display text-3xl font-extrabold text-slate-100">Analytics & Readiness Dashboard</h1>
+        <p className="mt-1 text-slate-400">Database-derived progress metrics, completed evaluations, roadmap execution, and recent activity.</p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Career Readiness</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"><Award className="h-4 w-4" /></span>
+          </div>
+          <div className="my-3">
+            <ScoreValue value={readiness.score} />
+            <p className="mt-1 text-xs text-slate-400">
+              {readiness.score === null ? "Complete an evaluation to establish readiness." : `${readiness.coverage}% of readiness inputs completed`}
+            </p>
+          </div>
+          <ProgressBar value={readiness.score} color="bg-gradient-to-r from-emerald-500 to-accent" />
+        </motion.article>
+
+        <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Latest ATS Score</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary-light"><FileCheck className="h-4 w-4" /></span>
+          </div>
+          <div className="my-3">
+            <ScoreValue value={summary.ats.latestScore} />
+            <p className="mt-1 text-xs text-slate-400">{summary.ats.totalAnalyses ? `${summary.ats.totalAnalyses} completed ATS ${summary.ats.totalAnalyses === 1 ? "analysis" : "analyses"}` : "No ATS analyses yet."}</p>
+          </div>
+          <ProgressBar value={summary.ats.latestScore} color="bg-gradient-to-r from-primary to-indigo-500" />
+        </motion.article>
+
+        <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Mock Interviews</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent-light"><MessageSquare className="h-4 w-4" /></span>
+          </div>
+          <div className="my-3">
+            <span className="font-display text-4xl font-black text-slate-100">{summary.interviews.totalCompleted}</span>
+            <p className="mt-1 text-xs text-slate-400">{summary.interviews.latestScore === null ? "No interviews completed yet." : `Latest score: ${summary.interviews.latestScore}%`}</p>
+          </div>
+          <ProgressBar value={summary.interviews.latestScore} color="bg-gradient-to-r from-teal-500 to-emerald-400" />
+        </motion.article>
+
+        <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Roadmap Progress</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400"><Target className="h-4 w-4" /></span>
+          </div>
+          <div className="my-3">
+            <ScoreValue value={summary.roadmap.progress} />
+            <p className="mt-1 text-xs text-slate-400">{summary.roadmap.exists ? `${summary.roadmap.completedTasks} of ${summary.roadmap.totalTasks} tasks completed` : "No active roadmap."}</p>
+          </div>
+          <ProgressBar value={summary.roadmap.progress} color="bg-gradient-to-r from-amber-500 to-orange-400" />
+        </motion.article>
       </div>
 
-      {/* Top Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Career Readiness Index */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur-md relative overflow-hidden flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Career Readiness</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Award className="w-4 h-4" />
-            </div>
+      <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5" aria-labelledby="readiness-inputs-title">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 id="readiness-inputs-title" className="font-display font-bold text-slate-100">Readiness inputs</h2>
+            <p className="text-xs text-slate-500">The score normalizes across completed inputs; coverage shows how much of the full model is represented.</p>
           </div>
-          <div className="my-3">
-            <span className="text-4xl font-display font-black text-slate-100">
-              {stats?.careerReadinessIndex || 0}%
-            </span>
-            <p className="text-xs text-slate-400 mt-1">Weighted Composite Readiness Metric</p>
-          </div>
-          <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-            <div
-              className="bg-gradient-to-r from-emerald-500 to-accent h-full rounded-full"
-              style={{ width: `${stats?.careerReadinessIndex || 0}%` }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Latest ATS Audit Score */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur-md flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Latest ATS Score</span>
-            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light">
-              <FileCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="my-3">
-            <span className="text-4xl font-display font-black text-slate-100">
-              {latestScores.atsScore}%
-            </span>
-            <p className="text-xs text-slate-400 mt-1">{counts.resumes} Resumes Analyzed</p>
-          </div>
-          <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-            <div
-              className="bg-gradient-to-r from-primary to-indigo-500 h-full rounded-full"
-              style={{ width: `${latestScores.atsScore}%` }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Mock Interviews Completed */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur-md flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mock Interviews</span>
-            <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent-light">
-              <MessageSquare className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="my-3">
-            <span className="text-4xl font-display font-black text-slate-100">
-              {counts.completedInterviews}
-            </span>
-            <p className="text-xs text-slate-400 mt-1">Latest Score: {latestScores.interviewScore}%</p>
-          </div>
-          <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-            <div
-              className="bg-gradient-to-r from-teal-500 to-emerald-400 h-full rounded-full"
-              style={{ width: `${latestScores.interviewScore}%` }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Learning Roadmap Progress */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur-md flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Roadmap Progress</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-              <Target className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="my-3">
-            <span className="text-4xl font-display font-black text-slate-100">
-              {latestScores.roadmapProgress}%
-            </span>
-            <p className="text-xs text-slate-400 mt-1">{counts.jobMatches} Job Matches Analyzed</p>
-          </div>
-          <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-            <div
-              className="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full"
-              style={{ width: `${latestScores.roadmapProgress}%` }}
-            />
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Visual Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* ATS Score Historical Trend Line Chart */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div>
-              <h3 className="text-lg font-display font-bold text-slate-100 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary-light" /> ATS Score Trajectory
-              </h3>
-              <p className="text-slate-400 text-xs mt-0.5">Historical ATS audit score progression over time.</p>
-            </div>
-          </div>
-          <ATSLineChart data={charts.atsTrend} />
-        </div>
-
-        {/* Skill Dimension Radar Chart */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div>
-              <h3 className="text-lg font-display font-bold text-slate-100 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-accent-light" /> Competency Radar
-              </h3>
-              <p className="text-slate-400 text-xs mt-0.5">Multi-dimensional skill coverage analysis.</p>
-            </div>
-          </div>
-          <SkillRadarChart data={charts.skillDimensions} />
-        </div>
-      </div>
-
-      {/* Weekly Activity Bar Chart & Audit Logs */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Weekly Goals Bar Chart */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-4">
-          <h3 className="text-lg font-display font-bold text-slate-100 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-amber-400" /> Weekly Target Goals
-          </h3>
-          <p className="text-slate-400 text-xs">Milestone completion targets vs actual finished items.</p>
-          <ActivityBarChart />
-        </div>
-
-        {/* Audit Activity Log Stream */}
-        <div className="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <h3 className="text-lg font-display font-bold text-slate-100 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary-light" /> Audit Activity Stream
-            </h3>
-            <span className="text-xs text-slate-500 font-medium">Real-time Telemetry</span>
-          </div>
-
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-            {activityLogs.map((log) => (
-              <div
-                key={log.id}
-                className="p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-2xl flex items-center justify-between gap-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light shrink-0">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-slate-200 text-xs font-semibold">{log.description}</p>
-                    <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">{log.action}</span>
-                  </div>
-                </div>
-
-                <span className="text-[11px] text-slate-400 whitespace-nowrap">
-                  {new Date(log.timestamp).toLocaleDateString()}
-                </span>
-              </div>
+          <div className="flex flex-wrap gap-2">
+            {readiness.components.map((component) => (
+              <span key={component.key} className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${component.available ? "border-emerald-800 bg-emerald-950/30 text-emerald-300" : "border-slate-800 bg-slate-950 text-slate-500"}`}>
+                {READINESS_LABELS[component.key]} · {component.available ? `${component.score}%` : "Not completed"} · {component.weight}% weight
+              </span>
             ))}
           </div>
         </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md sm:p-8">
+          <div className="border-b border-slate-800 pb-4">
+            <h2 className="flex items-center gap-2 font-display text-lg font-bold text-slate-100"><TrendingUp className="h-5 w-5 text-primary-light" /> ATS Score Trajectory</h2>
+            <p className="mt-0.5 text-xs text-slate-400">Latest {stats.atsTrajectory.length} completed analyses in chronological order.</p>
+          </div>
+          <ATSLineChart data={stats.atsTrajectory} />
+        </section>
+
+        <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md sm:p-8">
+          <div className="border-b border-slate-800 pb-4">
+            <h2 className="flex items-center gap-2 font-display text-lg font-bold text-slate-100"><Layers className="h-5 w-5 text-accent-light" /> Competency Radar</h2>
+            <p className="mt-0.5 text-xs text-slate-400">Dimensions from the latest ATS and Job Match records only.</p>
+          </div>
+          <SkillRadarChart data={stats.competencyRadar} />
+        </section>
       </div>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md sm:p-8">
+          <h2 className="flex items-center gap-2 font-display text-lg font-bold text-slate-100"><BarChart3 className="h-5 w-5 text-amber-400" /> Roadmap Weekly Plan</h2>
+          <p className="text-xs text-slate-400">Scheduled and completed tasks grouped by milestone start week.</p>
+          <ActivityBarChart data={stats.weeklyGoals} />
+        </section>
+
+        <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-md sm:p-8 lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <h2 className="flex items-center gap-2 font-display text-lg font-bold text-slate-100"><Activity className="h-5 w-5 text-primary-light" /> Audit Activity Stream</h2>
+            <span className="text-xs font-medium text-slate-500">Recent Activity</span>
+          </div>
+          {activities.length ? (
+            <div className="max-h-[320px] space-y-3 overflow-y-auto pr-2">
+              {activities.map((log) => (
+                <article key={log.id} className="flex flex-col gap-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary-light"><Clock className="h-4 w-4" /></span>
+                    <div className="min-w-0">
+                      <p className="break-words text-xs font-semibold text-slate-200">{log.description}</p>
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{log.action}</span>
+                    </div>
+                  </div>
+                  <time className="whitespace-nowrap text-[11px] text-slate-400" dateTime={log.createdAt}>{formatActivityDate(log.createdAt)}</time>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-h-48 items-center justify-center text-center text-sm text-slate-500">Your successful PathForge activities will appear here.</div>
+          )}
+        </section>
+      </div>
+
+      <p className="text-center text-xs text-slate-600">
+        Job Matches: {summary.jobMatches.totalAnalyzed} · Recruiter Simulations: {summary.recruiter.totalSimulations} · Resumes: {summary.resumes.total}
+      </p>
     </div>
   );
 };

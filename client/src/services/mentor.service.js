@@ -1,53 +1,48 @@
 import { api } from "../utils/api";
 
+const AI_TIMEOUT_MS = 135000;
+
 export const mentorService = {
-  /**
-   * Start a new mock interview session
-   * @param {object} payload - { targetRole, experienceLevel }
-   * @returns {Promise<object>} Initialized session
-   */
   async startSession(payload) {
-    const response = await api.post("/mentor/session/start", payload);
+    const response = await api.post("/mentor/session/start", payload, { timeout: AI_TIMEOUT_MS });
     return response.data;
   },
 
-  /**
-   * Send candidate answer to AI interviewer
-   * @param {string} sessionId 
-   * @param {string} message 
-   * @returns {Promise<object>} Updated session with AI follow-up
-   */
-  async sendMessage(sessionId, message) {
-    const response = await api.post(`/mentor/session/${sessionId}/message`, { message });
+  async getActiveSession() {
+    const response = await api.get("/mentor/session/active");
     return response.data;
   },
 
-  /**
-   * Complete interview session and request AI scorecard evaluation
-   * @param {string} sessionId 
-   * @returns {Promise<object>} Completed session with score & feedback
-   */
+  async submitAnswer(sessionId, questionId, answer) {
+    const response = await api.post(
+      `/mentor/session/${encodeURIComponent(sessionId)}/answer`,
+      { questionId, answer },
+      { timeout: AI_TIMEOUT_MS },
+    );
+    return response.data;
+  },
+
   async finishSession(sessionId) {
-    const response = await api.post(`/mentor/session/${sessionId}/finish`);
+    const response = await api.post(
+      `/mentor/session/${encodeURIComponent(sessionId)}/finish`,
+      undefined,
+      { timeout: AI_TIMEOUT_MS },
+    );
     return response.data;
   },
 
-  /**
-   * Fetch specific session details
-   * @param {string} sessionId 
-   * @returns {Promise<object>} Session record
-   */
   async getSession(sessionId) {
-    const response = await api.get(`/mentor/session/${sessionId}`);
+    const response = await api.get(`/mentor/session/${encodeURIComponent(sessionId)}`);
     return response.data;
   },
 
-  /**
-   * Fetch all past interview sessions
-   * @returns {Promise<object>} List of sessions
-   */
   async getInterviewHistory() {
     const response = await api.get("/mentor/session");
+    return response.data;
+  },
+
+  async deleteSession(sessionId) {
+    const response = await api.delete(`/mentor/session/${encodeURIComponent(sessionId)}`);
     return response.data;
   },
 };

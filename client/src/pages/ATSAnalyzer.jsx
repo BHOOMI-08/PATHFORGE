@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -30,6 +30,7 @@ export const ATSAnalyzer = () => {
   const [atsAnalysis, setAtsAnalysis] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const [keywordQuery, setKeywordQuery] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
 
   // Load user resumes and latest ATS analysis on mount
   useEffect(() => {
@@ -45,16 +46,21 @@ export const ATSAnalyzer = () => {
       ]);
 
       let userResumes = [];
-      if (resumesRes.status === "fulfilled" && resumesRes.value?.data?.data) {
-        userResumes = resumesRes.value.data.data;
+      if (resumesRes.status === "fulfilled" && resumesRes.value) {
+        userResumes = resumesRes.value?.data?.resumes || resumesRes.value?.data || (Array.isArray(resumesRes.value) ? resumesRes.value : []);
+        if (!Array.isArray(userResumes)) userResumes = [];
         setResumes(userResumes);
       }
 
-      if (atsRes.status === "fulfilled" && atsRes.value?.data) {
-        const latestRecord = atsRes.value.data;
-        setAtsAnalysis(latestRecord);
-        if (latestRecord?.resume?._id) {
-          setSelectedResumeId(latestRecord.resume._id);
+      if (atsRes.status === "fulfilled" && atsRes.value) {
+        const latestRecord = atsRes.value?.data || atsRes.value;
+        if (latestRecord && typeof latestRecord === "object" && !Array.isArray(latestRecord)) {
+          setAtsAnalysis(latestRecord);
+          if (latestRecord?.resume?._id) {
+            setSelectedResumeId(latestRecord.resume._id);
+          } else if (userResumes.length > 0) {
+            setSelectedResumeId(userResumes[0]._id);
+          }
         } else if (userResumes.length > 0) {
           setSelectedResumeId(userResumes[0]._id);
         }
@@ -70,25 +76,33 @@ export const ATSAnalyzer = () => {
   };
 
   const handleRunAnalysis = async () => {
-    if (!selectedResumeId && resumes.length === 0) {
+    if (!selectedResumeId) {
       toast.error("Please upload a resume first.");
       return;
     }
+
+    const normalizedJobDescription = jobDescription.trim();
+    if (normalizedJobDescription.length < 80) {
+      toast.error("Enter a job description of at least 80 characters.");
+      return;
+    }
+    if (analyzing) return;
 
     setAnalyzing(true);
     const toastId = toast.loading("Running Gemini AI ATS Evaluation...");
 
     try {
-      const res = await atsService.analyzeResume(selectedResumeId);
-      if (res?.data) {
-        setAtsAnalysis(res.data);
+      const res = await atsService.analyzeResume(selectedResumeId, normalizedJobDescription);
+      const analysisData = res?.data || res;
+      if (analysisData && typeof analysisData === "object" && (analysisData.overallScore !== undefined || analysisData._id)) {
+        setAtsAnalysis(analysisData);
         toast.success("ATS Audit completed successfully!", { id: toastId });
       } else {
         toast.error("Analysis completed with empty response", { id: toastId });
       }
     } catch (err) {
       console.error("ATS Evaluation error:", err);
-      toast.error(err.response?.data?.message || "Failed to execute ATS analysis.", {
+      toast.error(err.body?.message || err.message || "Failed to execute ATS analysis.", {
         id: toastId,
       });
     } finally {
@@ -211,6 +225,13 @@ export const ATSAnalyzer = () => {
         </div>
       </div>
 
+      <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-3">
+        <label htmlFor="ats-job-description" className="block text-sm font-semibold text-slate-200">Target job description</label>
+        <textarea id="ats-job-description" value={jobDescription} onChange={(event) => setJobDescription(event.target.value)} disabled={analyzing}
+          rows={8} maxLength={12000} placeholder="Paste the complete job description (minimum 80 characters)..."
+          className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm text-slate-200 focus:border-primary focus:outline-none disabled:opacity-60" />
+        <p className="text-xs text-slate-400">{jobDescription.trim().length}/12000 characters</p>
+      </section>
       {/* Main Grid: Telemetry & Score Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Overall Score Circle Card */}
@@ -391,6 +412,24 @@ export const ATSAnalyzer = () => {
         )}
       </div>
 
+      {atsAnalysis && (
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            ["Matched Keywords", atsAnalysis.matchedKeywords],
+            ["Strengths", atsAnalysis.strengths],
+            ["Weaknesses", atsAnalysis.weaknesses],
+            ["Recommendations", atsAnalysis.recommendations],
+          ].map(([title, items]) => (
+            <div key={title} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+              <h3 className="font-semibold text-slate-100 mb-3">{title}</h3>
+              {Array.isArray(items) && items.length ? (
+                <ul className="space-y-2 text-sm text-slate-300">{items.map((item, index) => <li key={`${title}-${index}`}>• {String(item)}</li>)}</ul>
+              ) : <p className="text-sm text-slate-500">No items reported.</p>}
+            </div>
+          ))}
+          {atsAnalysis.summary && <div className="md:col-span-2 bg-slate-900/60 border border-slate-800 rounded-2xl p-5"><h3 className="font-semibold text-slate-100 mb-2">Summary</h3><p className="text-sm text-slate-300">{atsAnalysis.summary}</p></div>}
+        </section>
+      )}
       {/* Categorized Action Items & Recommendations Tabs */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 backdrop-blur-md space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -466,3 +505,7 @@ export const ATSAnalyzer = () => {
 };
 
 export default ATSAnalyzer;
+
+
+
+

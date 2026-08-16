@@ -11,7 +11,7 @@ export const extractTextFromPDF = async (pdfBuffer) => {
   }
 
   try {
-    const data = await pdfParse(pdfBuffer);
+    const data = await pdfParse(Uint8Array.from(pdfBuffer));
     return data.text || "";
   } catch (error) {
     console.error("PDF Parsing Error:", error);

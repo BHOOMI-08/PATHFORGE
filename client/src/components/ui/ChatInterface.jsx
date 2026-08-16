@@ -1,144 +1,165 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Loader2, Award } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Award,
+  Bot,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  Send,
+  Target,
+  User,
+} from "lucide-react";
 
 export const ChatInterface = ({
-  history = [],
-  onSendMessage,
+  session,
+  onSubmitAnswer,
   onFinishInterview,
   sending = false,
   finishing = false,
-  targetRole = "Technical Interview",
 }) => {
-  const [inputText, setInputText] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [inputError, setInputError] = useState("");
   const chatEndRef = useRef(null);
+  const questions = Array.isArray(session?.questions) ? session.questions : [];
+  const answeredCount = questions.filter((question) => question.answer).length;
+  const maxQuestions = Number(session?.maxQuestions || 5);
+  const progress = Math.round((answeredCount / maxQuestions) * 100);
+  const currentQuestion = questions[Number(session?.currentQuestionIndex || 0)] || null;
+  const canAnswer =
+    session?.status === "active" && currentQuestion && !currentQuestion.answer && !session?.isProcessing;
+
+  const visibleQuestions = questions.slice(0, maxQuestions);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, sending]);
+  }, [questions.length, sending]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!inputText.trim() || sending) return;
-
-    onSendMessage(inputText.trim());
-    setInputText("");
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const trimmed = answer.trim();
+    if (!trimmed) {
+      setInputError("Enter an answer before submitting.");
+      return;
     }
+    if (trimmed.length > 8000 || !canAnswer || sending) return;
+    setInputError("");
+    const saved = await onSubmitAnswer?.(currentQuestion.questionId, trimmed);
+    if (saved !== false) setAnswer("");
   };
 
   return (
-    <div className="bg-[#10263D]/80 border border-white/10 rounded-3xl overflow-hidden flex flex-col h-[72vh] backdrop-blur-xl shadow-2xl">
-      {/* Top Toolbar */}
-      <div className="p-4 sm:p-5 bg-[#041220]/90 border-b border-white/10 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#34D399]/15 border border-[#34D399]/30 flex items-center justify-center text-[#A7F3D0]">
-            <Bot className="w-5 h-5" />
+    <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#10263D]/80 shadow-2xl backdrop-blur-xl">
+      <header className="space-y-4 border-b border-white/10 bg-[#041220]/90 p-4 sm:p-6">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-display text-base font-extrabold text-slate-100">Gemini Technical Interviewer</h3>
+              <p className="text-xs text-slate-400">
+                {session.targetRole} / {session.seniorityLevel} level
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-display font-extrabold text-slate-100 text-base flex items-center gap-2">
-              Gemini AI Tech Interviewer
-              <span className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse" />
-            </h3>
-            <p className="text-xs text-slate-400">Target Role: {targetRole}</p>
+          <button
+            type="button"
+            onClick={onFinishInterview}
+            disabled={finishing || sending || answeredCount < 1 || session?.status !== "active"}
+            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-emerald-500 px-5 py-2.5 text-xs font-black text-slate-950 transition hover:opacity-90 disabled:opacity-40"
+          >
+            {finishing ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating report...</> : <><Award className="h-4 w-4" /> Finish & Evaluate</>}
+          </button>
+        </div>
+        <div>
+          <div className="mb-1.5 flex justify-between text-[11px] font-semibold text-slate-400">
+            <span>{answeredCount}/{maxQuestions} questions evaluated</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-slate-950">
+            <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
+      </header>
 
-        <button
-          onClick={onFinishInterview}
-          disabled={finishing || history.length < 2}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#34D399] to-[#10B981] hover:opacity-90 disabled:opacity-40 text-slate-950 text-xs font-black rounded-xl transition-all shadow-lg shadow-[#34D399]/20"
-        >
-          {finishing ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Evaluating Session...
-            </>
-          ) : (
-            <>
-              <Award className="w-3.5 h-3.5" /> Finish & Evaluate
-            </>
-          )}
-        </button>
-      </div>
+      <div className="max-h-[58vh] space-y-5 overflow-y-auto p-4 sm:p-6">
+        {visibleQuestions.map((question, index) => (
+          <article key={question.questionId} className="space-y-3 rounded-2xl border border-white/10 bg-[#041220] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+              <span className="rounded-lg bg-blue-500/15 px-2 py-1 text-blue-300">Question {index + 1}</span>
+              <span className="rounded-lg border border-slate-700 px-2 py-1 text-slate-300">{question.category}</span>
+              <span className="rounded-lg border border-amber-800/50 bg-amber-950/20 px-2 py-1 text-amber-300">{question.difficulty}</span>
+              <span className="rounded-lg border border-violet-800/50 bg-violet-950/20 px-2 py-1 text-violet-300">{question.type?.replace("_", " ")}</span>
+              <span className="ml-auto inline-flex items-center gap-1 text-slate-500"><Clock className="h-3 w-3" /> {question.timeLimitSeconds}s suggested</span>
+            </div>
+            <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-100">{question.question}</p>
 
-      {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-        {history.map((msg, idx) => {
-          const isAI = msg.sender === "ai";
-
-          return (
-            <div
-              key={idx}
-              className={`flex items-start gap-3 ${isAI ? "justify-start" : "justify-end"}`}
-            >
-              {isAI && (
-                <div className="w-8 h-8 rounded-xl bg-[#34D399]/15 border border-[#34D399]/30 flex items-center justify-center text-[#A7F3D0] shrink-0 mt-1">
-                  <Bot className="w-4 h-4" />
+            {question.answer && (
+              <div className="space-y-3 border-t border-white/10 pt-3">
+                <div className="flex items-start gap-2 rounded-xl border border-blue-900/50 bg-blue-950/20 p-3 text-xs text-slate-300">
+                  <User className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-300" />
+                  <p className="whitespace-pre-wrap">{question.answer.text}</p>
                 </div>
-              )}
-
-              <div
-                className={`max-w-2xl p-4.5 rounded-2xl leading-relaxed text-xs sm:text-sm shadow-md ${
-                  isAI
-                    ? "bg-[#041220] border border-white/10 text-slate-200 rounded-tl-none"
-                    : "bg-gradient-to-r from-[#3B82F6] to-indigo-600 text-white rounded-tr-none"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-4 mb-1 text.11px opacity-75 font-semibold">
-                  <span>{isAI ? "AI Technical Lead" : "You (Candidate)"}</span>
-                  <span>{new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                <div className="rounded-xl border border-emerald-900/50 bg-emerald-950/20 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Answer evaluation</span>
+                    <span className="text-lg font-black text-emerald-300">{question.answer.evaluation?.score ?? 0}%</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-300">{question.answer.evaluation?.feedback}</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-500">Strengths</span>
+                      {(question.answer.evaluation?.strengths || []).map((item) => <p key={item} className="mt-1 text-[11px] text-emerald-300">+ {item}</p>)}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-500">Improvements</span>
+                      {(question.answer.evaluation?.improvements || []).map((item) => <p key={item} className="mt-1 text-[11px] text-amber-300">- {item}</p>)}
+                    </div>
+                  </div>
+                  <details className="mt-3 text-xs text-slate-400">
+                    <summary className="cursor-pointer font-semibold text-slate-300">Review reference answer</summary>
+                    <p className="mt-2 whitespace-pre-wrap leading-relaxed">{question.answer.evaluation?.idealAnswer}</p>
+                  </details>
+                  {question.answer.evaluation?.nextQuestionReason && (
+                    <p className="mt-3 flex items-start gap-1.5 text-[11px] text-violet-300"><Target className="mt-0.5 h-3 w-3 shrink-0" /> {question.answer.evaluation.nextQuestionReason}</p>
+                  )}
                 </div>
-                <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
               </div>
+            )}
+          </article>
+        ))}
 
-              {!isAI && (
-                <div className="w-8 h-8 rounded-xl bg-[#071A2C] border border-white/10 flex items-center justify-center text-slate-300 shrink-0 mt-1">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Typing indicator */}
         {sending && (
-          <div className="flex items-start gap-3 justify-start animate-fade-in">
-            <div className="w-8 h-8 rounded-xl bg-[#34D399]/15 border border-[#34D399]/30 flex items-center justify-center text-[#A7F3D0] shrink-0">
-              <Bot className="w-4 h-4" />
-            </div>
-            <div className="p-4 bg-[#041220] border border-white/10 rounded-2xl rounded-tl-none flex items-center gap-2 text-slate-300 text-xs">
-              <Loader2 className="w-4 h-4 animate-spin text-[#34D399]" /> AI Interviewer is formulating technical question...
-            </div>
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-800/40 bg-emerald-950/20 p-4 text-xs text-emerald-200">
+            <Loader2 className="h-4 w-4 animate-spin" /> Gemini is evaluating this answer and generating the contextual next question...
           </div>
         )}
-
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Bar */}
-      <form onSubmit={handleSubmit} className="p-4 bg-[#041220]/90 border-t border-white/10 flex items-center gap-3">
-        <textarea
-          rows={2}
-          placeholder="Type your technical response... (Press Enter to send)"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="flex-1 bg-[#0B2238] border border-white/10 text-slate-100 text-sm rounded-2xl p-3.5 focus:outline-none focus:border-[#6EE7C8] resize-none leading-relaxed"
-        />
-
-        <button
-          type="submit"
-          disabled={sending || !inputText.trim()}
-          className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#3B82F6] to-[#34D399] hover:opacity-90 disabled:opacity-40 text-slate-950 flex items-center justify-center transition-all shadow-lg shrink-0 font-bold"
-        >
-          {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-        </button>
-      </form>
-    </div>
+      {canAnswer ? (
+        <form onSubmit={handleSubmit} className="space-y-2 border-t border-white/10 bg-[#041220]/90 p-4">
+          <textarea
+            rows={4}
+            required
+            maxLength={8000}
+            placeholder="Write your answer to the current question..."
+            value={answer}
+            onChange={(event) => { setAnswer(event.target.value); setInputError(""); }}
+            disabled={sending || finishing}
+            className="w-full resize-none rounded-2xl border border-white/10 bg-[#0B2238] p-3.5 text-sm leading-relaxed text-slate-100 focus:border-emerald-300 focus:outline-none disabled:opacity-60"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <span className={`text-[11px] ${inputError ? "text-rose-400" : "text-slate-500"}`}>{inputError || `${answer.length}/8000 characters`}</span>
+            <button type="submit" disabled={sending || finishing || !answer.trim()} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-emerald-400 px-5 py-2.5 text-xs font-bold text-slate-950 disabled:opacity-40">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Submit Answer
+            </button>
+          </div>
+        </form>
+      ) : session?.status === "active" && currentQuestion?.answer ? (
+        <div className="border-t border-white/10 bg-[#041220]/90 p-4 text-center text-xs text-slate-400">All generated questions are evaluated. Finish the interview to create the persisted scorecard.</div>
+      ) : null}
+    </section>
   );
 };
 

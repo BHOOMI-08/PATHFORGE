@@ -1,4 +1,4 @@
-import { api } from "../utils/api";
+﻿import { api } from "../utils/api";
 
 export const atsService = {
   /**
@@ -6,9 +6,9 @@ export const atsService = {
    * @param {string} [resumeId] 
    * @returns {Promise<object>} ATS analysis response
    */
-  async analyzeResume(resumeId) {
+  async analyzeResume(resumeId, jobDescription) {
     const url = resumeId ? `/ats/analyze/${resumeId}` : "/ats/analyze";
-    const response = await api.post(url);
+    const response = await api.post(url, { resumeId, jobDescription }, { timeout: 75000 });
     return response.data;
   },
 
@@ -33,3 +33,5 @@ export const atsService = {
 };
 
 export default atsService;
+
+

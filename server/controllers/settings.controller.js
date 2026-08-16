@@ -9,6 +9,8 @@ import ATSAnalysis from "../models/ATSAnalysis.model.js";
 import JobMatch from "../models/JobMatch.model.js";
 import Interview from "../models/Interview.model.js";
 import Roadmap from "../models/Roadmap.model.js";
+import OpportunityRadarScan from "../models/OpportunityRadarScan.model.js";
+import CEOStrategyPlan from "../models/CEOStrategyPlan.model.js";
 
 /**
  * Get full User Settings, Account Statistics & Profile Metadata
@@ -184,6 +186,8 @@ export const deleteUserData = asyncHandler(async (req, res) => {
       JobMatch.deleteMany({ user: userId }),
       Interview.deleteMany({ user: userId }),
       Roadmap.deleteMany({ user: userId }),
+      OpportunityRadarScan.deleteMany({ user: userId }),
+      CEOStrategyPlan.deleteMany({ user: userId }),
     ]);
   } else {
     throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid deletion target specified");
@@ -209,6 +213,8 @@ export const exportUserData = asyncHandler(async (req, res) => {
     jobMatches,
     interviews,
     roadmap,
+    opportunityRadarScans,
+    ceoStrategyPlans,
   ] = await Promise.all([
     User.findById(userId).select("-password -refreshToken"),
     Settings.findOne({ user: userId }),
@@ -217,6 +223,8 @@ export const exportUserData = asyncHandler(async (req, res) => {
     JobMatch.find({ user: userId }),
     Interview.find({ user: userId }),
     Roadmap.findOne({ user: userId }),
+    OpportunityRadarScan.find({ user: userId }).sort({ generatedAt: -1 }),
+    CEOStrategyPlan.find({ user: userId }).sort({ generatedAt: -1 }),
   ]);
 
   const exportPayload = {
@@ -228,6 +236,8 @@ export const exportUserData = asyncHandler(async (req, res) => {
     jobMatches,
     interviews,
     roadmap,
+    opportunityRadarScans,
+    ceoStrategyPlans,
   };
 
   return res.status(STATUS_CODES.OK).json(

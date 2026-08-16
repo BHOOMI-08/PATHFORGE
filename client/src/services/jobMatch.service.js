@@ -7,7 +7,7 @@ export const jobMatchService = {
    * @returns {Promise<object>} Match analysis record
    */
   async createJobMatch(payload) {
-    const response = await api.post("/job-match", payload);
+    const response = await api.post("/job-match", payload, { timeout: 75000 });
     return response.data;
   },
 

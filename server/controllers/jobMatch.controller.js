@@ -1,119 +1,70 @@
+import mongoose from "mongoose";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
-import STATUS_CODES from "../constants/statusCodes.js";
 import Resume from "../models/Resume.model.js";
 import JobMatch from "../models/JobMatch.model.js";
+import { jobMatchRequestSchema } from "../validators/jobMatch.validator.js";
 import { evaluateJobMatch } from "../services/gemini/jobmatch.service.js";
+import { calculateSkillGap, combineJobMatchResult } from "../services/jobMatchScoring.service.js";
+import { recordActivity } from "../services/activity.service.js";
 
-/**
- * Execute job match evaluation against parsed resume
- * POST /api/v1/job-match
- */
-export const createJobMatch = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-  const { resumeId, jobTitle, companyName, jobDescription } = req.body;
-
-  if (!jobTitle || !jobTitle.trim()) {
-    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Job Title is required");
-  }
-
-  if (!jobDescription || !jobDescription.trim()) {
-    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Job Description is required");
-  }
-
-  let resume;
-  if (resumeId) {
-    resume = await Resume.findOne({ _id: resumeId, user: userId });
-  } else {
-    resume = await Resume.findOne({ user: userId }).sort({ createdAt: -1 });
-  }
-
-  if (!resume) {
-    throw new ApiError(STATUS_CODES.NOT_FOUND, "No resume found to run job match comparison");
-  }
-
-  // 1. Evaluate job match using Gemini AI service
-  const matchResult = await evaluateJobMatch(resume, jobDescription.trim(), jobTitle.trim());
-
-  // 2. Persist record in MongoDB
-  const jobMatchRecord = await JobMatch.create({
-    user: userId,
-    resume: resume._id,
-    jobTitle: jobTitle.trim(),
-    companyName: companyName ? companyName.trim() : "",
-    jobDescription: jobDescription.trim(),
-    matchScore: matchResult.matchScore,
-    matchBreakdown: matchResult.matchBreakdown,
-    matchingSkills: matchResult.matchingSkills,
-    missingSkills: matchResult.missingSkills,
-    recommendations: matchResult.recommendations,
-  });
-
-  const populatedRecord = await JobMatch.findById(jobMatchRecord._id).populate("resume", "fileName fileUrl createdAt");
-
-  return res.status(STATUS_CODES.CREATED).json(
-    new ApiResponse(STATUS_CODES.CREATED, populatedRecord, "Job match evaluation completed successfully")
-  );
-});
-
-/**
- * Get all job match comparisons for user
- * GET /api/v1/job-match
- */
-export const getJobMatches = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-
-  const matches = await JobMatch.find({ user: userId })
-    .sort({ createdAt: -1 })
-    .populate("resume", "fileName fileUrl createdAt");
-
-  return res.status(STATUS_CODES.OK).json(
-    new ApiResponse(STATUS_CODES.OK, matches, "Job match history retrieved successfully")
-  );
-});
-
-/**
- * Get specific job match comparison by ID
- * GET /api/v1/job-match/:id
- */
-export const getJobMatchById = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-  const { id } = req.params;
-
-  const match = await JobMatch.findOne({ _id: id, user: userId }).populate("resume", "fileName fileUrl createdAt");
-
-  if (!match) {
-    throw new ApiError(STATUS_CODES.NOT_FOUND, "Job match record not found");
-  }
-
-  return res.status(STATUS_CODES.OK).json(
-    new ApiResponse(STATUS_CODES.OK, match, "Job match record retrieved successfully")
-  );
-});
-
-/**
- * Delete job match evaluation record
- * DELETE /api/v1/job-match/:id
- */
-export const deleteJobMatch = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-  const { id } = req.params;
-
-  const match = await JobMatch.findOneAndDelete({ _id: id, user: userId });
-
-  if (!match) {
-    throw new ApiError(STATUS_CODES.NOT_FOUND, "Job match record not found");
-  }
-
-  return res.status(STATUS_CODES.OK).json(
-    new ApiResponse(STATUS_CODES.OK, null, "Job match record deleted successfully")
-  );
-});
-
-export default {
-  createJobMatch,
-  getJobMatches,
-  getJobMatchById,
-  deleteJobMatch,
+const parseRequest = (body) => {
+  const result = jobMatchRequestSchema.safeParse(body);
+  if (!result.success) throw new ApiError(400, result.error.errors[0]?.message || "Invalid job match request", result.error.errors.map((e) => e.message));
+  return result.data;
 };
+const validateId = (id, label) => { if (!mongoose.isValidObjectId(id)) throw new ApiError(400, `${label} is invalid`); };
+
+export const createJobMatch = asyncHandler(async (req, res) => {
+  const input = parseRequest(req.body);
+  validateId(input.resumeId, "Resume ID");
+  const resume = await Resume.findOne({ _id: input.resumeId, user: req.user._id });
+  if (!resume) throw new ApiError(404, "Resume not found");
+  if (!resume.rawText?.trim() || resume.rawText.trim().length < 50) throw new ApiError(422, "Resume contains insufficient extractable text");
+
+  const deterministic = calculateSkillGap(resume.rawText, input.jobDescription);
+  const semantic = await evaluateJobMatch({ resumeText: resume.rawText, ...input });
+  const result = combineJobMatchResult(deterministic, semantic);
+  const session = await mongoose.startSession();
+  let createdId;
+  try {
+    await session.withTransaction(async () => {
+      const [created] = await JobMatch.create([{ user: req.user._id, resume: resume._id, ...input, ...result }], { session });
+      createdId = created._id;
+      await recordActivity({
+        user: req.user._id,
+        action: "JOB_MATCHED",
+        sourceId: created._id,
+        description: `Job match analyzed for ${created.jobTitle}`,
+        metadata: { jobMatchId: created._id, resumeId: resume._id, score: result.matchScore },
+        session,
+      });
+    });
+  } finally {
+    await session.endSession();
+  }
+  const record = await JobMatch.findOne({ _id: createdId, user: req.user._id }).populate("resume", "fileName fileUrl createdAt status");
+  return res.status(201).json(new ApiResponse(201, record, "Job match evaluation completed successfully"));
+});
+
+export const getJobMatches = asyncHandler(async (req, res) => {
+  const matches = await JobMatch.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(50).populate("resume", "fileName fileUrl createdAt status");
+  return res.status(200).json(new ApiResponse(200, matches, "Job match history retrieved successfully"));
+});
+
+export const getJobMatchById = asyncHandler(async (req, res) => {
+  validateId(req.params.id, "Job match ID");
+  const match = await JobMatch.findOne({ _id: req.params.id, user: req.user._id }).populate("resume", "fileName fileUrl createdAt status");
+  if (!match) throw new ApiError(404, "Job match record not found");
+  return res.status(200).json(new ApiResponse(200, match, "Job match record retrieved successfully"));
+});
+
+export const deleteJobMatch = asyncHandler(async (req, res) => {
+  validateId(req.params.id, "Job match ID");
+  const match = await JobMatch.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+  if (!match) throw new ApiError(404, "Job match record not found");
+  return res.status(200).json(new ApiResponse(200, null, "Job match record deleted successfully"));
+});
+
+export default { createJobMatch, getJobMatches, getJobMatchById, deleteJobMatch };

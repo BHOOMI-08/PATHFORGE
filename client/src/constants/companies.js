@@ -6,6 +6,7 @@ export const TARGET_COMPANIES = [
     badgeColor: "from-blue-500/20 to-emerald-500/20 border-blue-500/30 text-blue-400",
     glowColor: "shadow-blue-500/20",
     focus: "Algorithms, Distributed Scale, System Design & Clean Code",
+    focusAreas: ["Problem solving", "Data structures and algorithms", "Scalable systems", "Engineering quality"],
     tagline: "High hiring bar focusing on DSA rigor and global scalability.",
   },
   {
@@ -15,6 +16,7 @@ export const TARGET_COMPANIES = [
     badgeColor: "from-amber-500/20 to-orange-500/20 border-amber-500/30 text-amber-400",
     glowColor: "shadow-amber-500/20",
     focus: "Customer Obsession, Ownership & Leadership Principles",
+    focusAreas: ["Technical depth", "Ownership", "Customer impact", "Reliable systems"],
     tagline: "Evaluates technical depth alongside 16 Leadership Principles.",
   },
   {
@@ -24,6 +26,7 @@ export const TARGET_COMPANIES = [
     badgeColor: "from-indigo-500/20 to-sky-500/20 border-indigo-500/30 text-sky-400",
     glowColor: "shadow-sky-500/20",
     focus: "Clean Architecture, Cloud Integration & Systems Engineering",
+    focusAreas: ["Engineering fundamentals", "Architecture", "Product thinking", "Collaboration"],
     tagline: "Emphasizes solid OOP principles, testing, and enterprise cloud.",
   },
   {
@@ -33,6 +36,7 @@ export const TARGET_COMPANIES = [
     badgeColor: "from-yellow-500/20 to-blue-500/20 border-yellow-500/30 text-yellow-400",
     glowColor: "shadow-yellow-500/20",
     focus: "E-Commerce Scale, Low-Latency Microservices & DB Tuning",
+    focusAreas: ["Backend depth", "High-concurrency systems", "Performance", "Operational reliability"],
     tagline: "Focuses on handling flash sale concurrency and fault tolerance.",
   },
   {
@@ -42,6 +46,7 @@ export const TARGET_COMPANIES = [
     badgeColor: "from-blue-600/20 to-cyan-500/20 border-cyan-500/30 text-cyan-400",
     glowColor: "shadow-cyan-500/20",
     focus: "Collaboration Tools, Clean Modular Design & Craftsmanship",
+    focusAreas: ["Product engineering", "Code quality", "Collaboration", "Maintainable design"],
     tagline: "Values code readability, collaborative mindset, and unit testing.",
   },
   {
@@ -51,6 +56,7 @@ export const TARGET_COMPANIES = [
     badgeColor: "from-blue-500/20 to-purple-500/20 border-purple-500/30 text-purple-400",
     glowColor: "shadow-purple-500/20",
     focus: "Rapid Iteration, System Performance & High-Impact Features",
+    focusAreas: ["Problem solving", "System performance", "Product impact", "Rapid execution"],
     tagline: "Evaluates fast problem solving and massive user-base optimization.",
   },
 ];

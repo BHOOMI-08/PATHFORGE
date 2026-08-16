@@ -1,14 +1,22 @@
 import { api } from "../utils/api";
 
+const getResponseData = (response) => {
+  if (!response || typeof response !== "object" || !Object.prototype.hasOwnProperty.call(response, "data")) {
+    throw new Error("The server returned an invalid recruiter response.");
+  }
+  return response.data;
+};
+
 export const recruiterService = {
   /**
    * Run AI Recruiter Screening simulation against target company criteria
-   * @param {object} payload - { resumeId, company, targetRole }
+   * @param {object} payload - { company, targetRole }
+   * @param {object} options - optional Fetch options such as AbortSignal
    * @returns {Promise<object>} Recruiter evaluation record
    */
-  async simulateRecruiter(payload) {
-    const response = await api.post("/recruiter/simulate", payload);
-    return response.data;
+  async simulateRecruiter(payload, options = {}) {
+    const response = await api.post("/recruiter/simulate", payload, { timeout: 75000, ...options });
+    return getResponseData(response);
   },
 
   /**
@@ -17,7 +25,7 @@ export const recruiterService = {
    */
   async getRecruiterSimulations() {
     const response = await api.get("/recruiter");
-    return response.data;
+    return getResponseData(response) || [];
   },
 
   /**
@@ -27,7 +35,7 @@ export const recruiterService = {
    */
   async getRecruiterSimulationById(id) {
     const response = await api.get(`/recruiter/${id}`);
-    return response.data;
+    return getResponseData(response);
   },
 
   /**
@@ -37,7 +45,7 @@ export const recruiterService = {
    */
   async deleteRecruiterSimulation(id) {
     const response = await api.delete(`/recruiter/${id}`);
-    return response.data;
+    return getResponseData(response);
   },
 };
 

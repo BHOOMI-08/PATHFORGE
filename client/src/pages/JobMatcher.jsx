@@ -30,6 +30,7 @@ export const JobMatcher = () => {
   const [matchHistory, setMatchHistory] = useState([]);
   const [currentMatch, setCurrentMatch] = useState(null);
   const [activeTab, setActiveTab] = useState("new"); // "new" | "history"
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     fetchInitialData();
@@ -37,22 +38,31 @@ export const JobMatcher = () => {
 
   const fetchInitialData = async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [resumesRes, matchesRes] = await Promise.allSettled([
         getUserResumes(),
         jobMatchService.getJobMatches(),
       ]);
 
-      if (resumesRes.status === "fulfilled" && resumesRes.value?.data?.data) {
-        setResumes(resumesRes.value.data.data);
+      if (resumesRes.status === "fulfilled" && resumesRes.value) {
+        const resumeList = resumesRes.value?.data?.resumes || resumesRes.value?.data || (Array.isArray(resumesRes.value) ? resumesRes.value : []);
+        setResumes(Array.isArray(resumeList) ? resumeList : []);
       }
 
-      if (matchesRes.status === "fulfilled" && matchesRes.value?.data) {
-        const history = matchesRes.value.data;
-        setMatchHistory(history);
-        if (history.length > 0) {
+      if (matchesRes.status === "fulfilled" && matchesRes.value) {
+        const history = Array.isArray(matchesRes.value) ? matchesRes.value : (matchesRes.value?.data || []);
+        setMatchHistory(Array.isArray(history) ? history : []);
+        if (Array.isArray(history) && history.length > 0) {
           setCurrentMatch(history[0]);
         }
+      }
+
+      const failures = [resumesRes, matchesRes].filter((result) => result.status === "rejected");
+      if (failures.length) {
+        const message = failures[0].reason?.body?.message || failures[0].reason?.message || "Some Job Matcher data could not be loaded.";
+        setLoadError(message);
+        toast.error(message);
       }
     } catch (err) {
       console.error("Failed to load Job Matcher data:", err);
@@ -63,19 +73,23 @@ export const JobMatcher = () => {
   };
 
   const handleCreateMatch = async (formData) => {
+    if (evaluating) return;
     setEvaluating(true);
     const toastId = toast.loading("Analyzing candidate resume against target Job Description...");
 
     try {
       const res = await jobMatchService.createJobMatch(formData);
-      if (res?.data) {
-        setCurrentMatch(res.data);
-        setMatchHistory((prev) => [res.data, ...prev]);
+      const matchResult = res?.data || res;
+      if (matchResult && typeof matchResult === "object") {
+        setCurrentMatch(matchResult);
+        setMatchHistory((prev) => [matchResult, ...prev]);
         toast.success("Job Match analysis complete!", { id: toastId });
+      } else {
+        throw new Error("The Job Matcher returned an empty response.");
       }
     } catch (err) {
       console.error("Job Match error:", err);
-      toast.error(err.response?.data?.message || "Failed to execute job match comparison.", {
+      toast.error(err.body?.message || err.message || "Failed to execute job match comparison.", {
         id: toastId,
       });
     } finally {
@@ -103,6 +117,19 @@ export const JobMatcher = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <LoadingSpinner />
         <p className="text-slate-400 text-sm">Loading Job Matcher workspace...</p>
+      </div>
+    );
+  }
+
+  if (loadError && resumes.length === 0) {
+    return (
+      <div className="max-w-3xl mx-auto rounded-2xl border border-rose-900/60 bg-rose-950/20 p-8 text-center">
+        <AlertCircle className="mx-auto h-10 w-10 text-rose-400" />
+        <h2 className="mt-4 text-xl font-semibold text-slate-100">Unable to load Job Matcher</h2>
+        <p className="mt-2 text-sm text-slate-400">{loadError}</p>
+        <button type="button" onClick={fetchInitialData} className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white">
+          Try again
+        </button>
       </div>
     );
   }
@@ -142,10 +169,12 @@ export const JobMatcher = () => {
     );
   }
 
-  const matchBreakdown = currentMatch?.matchBreakdown || {
+  const matchBreakdown = {
     technicalMatch: 0,
     experienceMatch: 0,
     educationMatch: 0,
+    projectMatch: 0,
+    ...(currentMatch?.matchBreakdown || {}),
   };
 
   return (
@@ -197,7 +226,7 @@ export const JobMatcher = () => {
       )}
 
       {/* Main Results View (If a match evaluation exists) */}
-      {currentMatch && (
+      {activeTab === "new" && currentMatch && (
         <div className="space-y-8">
           {/* Overview Banner */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md">
@@ -303,6 +332,11 @@ export const JobMatcher = () => {
                   </div>
                 </div>
 
+                {/* Project Match */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm"><span className="font-semibold text-slate-300 flex items-center gap-2"><Layers className="w-4 h-4 text-cyan-400" /> Project Relevance</span><span className="font-bold text-slate-100">{matchBreakdown.projectMatch}%</span></div>
+                  <div className="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800"><div className="bg-gradient-to-r from-cyan-500 to-blue-400 h-full rounded-full transition-all duration-1000" style={{ width: `${matchBreakdown.projectMatch}%` }} /></div>
+                </div>
                 {/* Education Match */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -373,13 +407,18 @@ export const JobMatcher = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6"><h3 className="text-lg font-bold text-slate-100 mb-3">Strengths</h3>{Array.isArray(currentMatch.strengths) && currentMatch.strengths.length ? <ul className="space-y-2 text-sm text-slate-300">{currentMatch.strengths.map((item, index) => <li key={`strength-${index}`}>• {item}</li>)}</ul> : <p className="text-sm text-slate-500">No strengths reported.</p>}</div>
+            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6"><h3 className="text-lg font-bold text-slate-100 mb-3">Weaknesses</h3>{Array.isArray(currentMatch.weaknesses) && currentMatch.weaknesses.length ? <ul className="space-y-2 text-sm text-slate-300">{currentMatch.weaknesses.map((item, index) => <li key={`weakness-${index}`}>• {item}</li>)}</ul> : <p className="text-sm text-slate-500">No weaknesses reported.</p>}</div>
+            <div className="md:col-span-2 bg-slate-900/60 border border-slate-800 rounded-3xl p-6"><h3 className="text-lg font-bold text-slate-100 mb-3">Overall Summary</h3><p className="text-sm text-slate-300 leading-relaxed">{currentMatch.summary || "No summary available."}</p></div>
+          </div>
           {/* Action Recommendations */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 backdrop-blur-md space-y-6">
             <h3 className="text-xl font-display font-bold text-slate-100 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary-light" /> Tailoring & Optimization Advice
             </h3>
             <div className="space-y-3">
-              {currentMatch.recommendations?.map((rec, idx) => (
+              {Array.isArray(currentMatch.recommendations) && currentMatch.recommendations.length > 0 ? currentMatch.recommendations.map((rec, idx) => (
                 <div
                   key={idx}
                   className="p-4 bg-slate-950/60 border border-slate-800/80 rounded-2xl flex items-start gap-3"
@@ -389,8 +428,7 @@ export const JobMatcher = () => {
                   </span>
                   <p className="text-slate-300 text-sm leading-relaxed">{rec}</p>
                 </div>
-              ))}
-            </div>
+              )) : <p className="text-sm text-slate-500">No recommendations reported.</p>}            </div>
           </div>
         </div>
       )}

@@ -26,6 +26,14 @@ import {
   Layers
 } from "lucide-react";
 
+import WhyPathForgeSection from "../components/landing/WhyPathForgeSection.jsx";
+import FeatureGridSection from "../components/landing/FeatureGridSection.jsx";
+import HowItWorksSection from "../components/landing/HowItWorksSection.jsx";
+import IntelligenceShowcaseSection from "../components/landing/IntelligenceShowcaseSection.jsx";
+import WhoIsThisForSection from "../components/landing/WhoIsThisForSection.jsx";
+import SecuritySection from "../components/landing/SecuritySection.jsx";
+import FinalCTASection from "../components/landing/FinalCTASection.jsx";
+
 // Login validation schema
 const loginSchema = z.object({
   email: z
@@ -281,7 +289,6 @@ export const AuthPage = ({ initialMode = "login" }) => {
               "✓ 8-Week AI Roadmap",
               "✓ AI Mock Interviews",
               "✓ Job Match Matrix",
-              "✓ Career Twin Simulation",
               "✓ AI CEO Mode",
             ].map((pill, idx) => (
               <span
@@ -293,21 +300,6 @@ export const AuthPage = ({ initialMode = "login" }) => {
             ))}
           </div>
 
-          {/* Trust Metric Cards */}
-          <div className="grid grid-cols-3 gap-4 pt-1">
-            <div className="p-4 rounded-2xl bg-[#041220]/80 border border-white/10 backdrop-blur-md">
-              <span className="text-2xl font-black text-[#A7F3D0] block">+34%</span>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ATS Score Growth</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-[#041220]/80 border border-white/10 backdrop-blur-md">
-              <span className="text-2xl font-black text-[#60A5FA] block">15K+</span>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mock Interviews</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-[#041220]/80 border border-white/10 backdrop-blur-md">
-              <span className="text-2xl font-black text-slate-100 block">94%</span>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Career Accuracy</span>
-            </div>
-          </div>
 
         </motion.div>
 
@@ -636,20 +628,18 @@ export const AuthPage = ({ initialMode = "login" }) => {
 
       </main>
 
-      {/* Footer with Technology Badges */}
-      <footer className="w-full py-5 px-6 sm:px-12 border-t border-white/5 bg-[#020817] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 z-20">
+      {/* Landing Page Extension Sections */}
+      <WhyPathForgeSection />
+      <FeatureGridSection />
+      <HowItWorksSection />
+      <IntelligenceShowcaseSection />
+      <WhoIsThisForSection />
+      <SecuritySection />
+      <FinalCTASection onGetStarted={() => switchMode("register")} />
+
+      {/* Footer */}
+      <footer className="w-full py-5 px-6 sm:px-12 border-t border-white/5 bg-[#020817] flex items-center justify-center text-xs text-slate-500 z-20">
         <p>© {new Date().getFullYear()} PathForge AI Inc. All rights reserved.</p>
-        <div className="flex items-center space-x-2">
-          <span className="font-semibold text-slate-400 mr-1">Engineered with:</span>
-          {["React 19", "Express", "MongoDB", "Gemini AI", "Tailwind"].map((tech, idx) => (
-            <span
-              key={idx}
-              className="px-2.5 py-0.5 rounded-lg bg-[#041220] border border-white/5 text-[11px] font-bold text-slate-300"
-            >
-              {tech}
-            </span>
-          ))}
-        </div>
       </footer>
     </div>
   );

@@ -1,4 +1,4 @@
-import multer from "multer";
+﻿import multer from "multer";
 import ApiError from "../utils/ApiError.js";
 import STATUS_CODES from "../constants/statusCodes.js";
 
@@ -10,7 +10,7 @@ const fileFilter = (req, file, cb) => {
   const isPdfMime = file.mimetype === "application/pdf";
   const isPdfExt = file.originalname.toLowerCase().endsWith(".pdf");
 
-  if (isPdfMime || isPdfExt) {
+  if (isPdfMime && isPdfExt) {
     cb(null, true);
   } else {
     cb(
@@ -32,3 +32,4 @@ export const upload = multer({
 });
 
 export default upload;
+

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { FileText, Calendar, Award, Trash2, Eye, ExternalLink } from "lucide-react";
 
 export const ResumeCard = ({ resume, onView, onDelete }) => {
@@ -15,7 +15,7 @@ export const ResumeCard = ({ resume, onView, onDelete }) => {
   const topSkills =
     resume.parsedData?.skills?.technical?.slice(0, 4) || [];
 
-  const atsScore = resume.matchHistoryMetrics?.atsScoreBaseline || 75;
+  const atsScore = resume.matchHistoryMetrics?.atsScoreBaseline ?? 0;
 
   const handleDelete = async (e) => {
     e.stopPropagation();
@@ -121,3 +121,4 @@ export const ResumeCard = ({ resume, onView, onDelete }) => {
 };
 
 export default ResumeCard;
+

@@ -12,7 +12,6 @@ import AIMentor from "../pages/AIMentor";
 import Analytics from "../pages/Analytics";
 import RecruiterSimulator from "../pages/RecruiterSimulator";
 import ResumeEvolution from "../pages/ResumeEvolution";
-import CareerTwin from "../pages/CareerTwin";
 import OpportunityRadar from "../pages/OpportunityRadar";
 import AICEOMode from "../pages/AICEOMode";
 import ProfileSettings from "../pages/ProfileSettings";
@@ -178,7 +177,6 @@ const AppRoutes = () => {
         <Route path="analytics" element={<Analytics />} />
         <Route path="recruiter" element={<RecruiterSimulator />} />
         <Route path="resume-evolution" element={<ResumeEvolution />} />
-        <Route path="career-twin" element={<CareerTwin />} />
         <Route path="opportunity-radar" element={<OpportunityRadar />} />
         <Route path="ceo-mode" element={<AICEOMode />} />
         <Route path="settings" element={<ProfileSettings />} />

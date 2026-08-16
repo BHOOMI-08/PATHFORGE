@@ -19,20 +19,21 @@ export const SkillRadarChart = ({ data = [] }) => {
   }
 
   return (
-    <div className="h-64 w-full">
+    <div className="h-72 w-full" role="img" aria-label={`Competency radar containing ${data.length} database-derived dimensions`}>
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
+        <RadarChart cx="50%" cy="50%" outerRadius="64%" data={data} margin={{ top: 18, right: 28, bottom: 18, left: 28 }}>
           <PolarGrid stroke="rgba(255, 255, 255, 0.06)" />
-          <PolarAngleAxis dataKey="subject" stroke="#CBD5E1" tick={{ fontSize: 11 }} />
-          <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="rgba(255, 255, 255, 0.12)" />
+          <PolarAngleAxis dataKey="label" stroke="#CBD5E1" tick={{ fontSize: 10 }} />
+          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
           <Radar
             name="Skill Strength"
-            dataKey="A"
+            dataKey="score"
             stroke="#34D399"
             fill="#34D399"
             fillOpacity={0.35}
           />
           <Tooltip
+            formatter={(value, _name, item) => [`${value}% (${item?.payload?.source || "PathForge"})`, "Score"]}
             contentStyle={{
               backgroundColor: "rgba(16, 38, 61, 0.95)",
               borderColor: "rgba(255, 255, 255, 0.1)",

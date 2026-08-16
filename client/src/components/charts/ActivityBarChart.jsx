@@ -7,23 +7,25 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
 } from "recharts";
 
-const DEFAULT_GOALS = [
-  { name: "Week 1", Target: 8, Completed: 6 },
-  { name: "Week 2", Target: 10, Completed: 8 },
-  { name: "Week 3", Target: 12, Completed: 11 },
-  { name: "Week 4", Target: 10, Completed: 9 },
-];
+export const ActivityBarChart = ({ data = [] }) => {
+  if (!Array.isArray(data) || data.length === 0) {
+    return (
+      <div className="flex h-64 items-center justify-center px-6 text-center text-xs text-slate-500">
+        Create a roadmap to track scheduled and completed tasks by week.
+      </div>
+    );
+  }
 
-export const ActivityBarChart = ({ data = DEFAULT_GOALS }) => {
   return (
-    <div className="h-64 w-full">
+    <div className="h-64 w-full" role="img" aria-label="Roadmap tasks scheduled and completed by milestone start week">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
-          <XAxis dataKey="name" stroke="#CBD5E1" tick={{ fontSize: 11 }} />
-          <YAxis stroke="#CBD5E1" tick={{ fontSize: 11 }} />
+          <XAxis dataKey="label" stroke="#CBD5E1" tick={{ fontSize: 11 }} />
+          <YAxis allowDecimals={false} stroke="#CBD5E1" tick={{ fontSize: 11 }} />
           <Tooltip
             contentStyle={{
               backgroundColor: "rgba(16, 38, 61, 0.95)",
@@ -35,8 +37,9 @@ export const ActivityBarChart = ({ data = DEFAULT_GOALS }) => {
               backdropFilter: "blur(12px)",
             }}
           />
-          <Bar dataKey="Target" fill="#071A2C" radius={[8, 8, 0, 0]} />
-          <Bar dataKey="Completed" fill="#34D399" radius={[8, 8, 0, 0]} />
+          <Legend wrapperStyle={{ fontSize: "11px", color: "#CBD5E1" }} />
+          <Bar dataKey="target" name="Scheduled" fill="#3B82F6" radius={[8, 8, 0, 0]} />
+          <Bar dataKey="completed" name="Completed" fill="#34D399" radius={[8, 8, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

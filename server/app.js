@@ -38,10 +38,10 @@ if (process.env.NODE_ENV !== "production") {
 
 import rateLimit from "express-rate-limit";
 
-// Rate limiting middleware (100 requests per 15 minutes)
+// Rate limiting middleware (1000 requests per 15 minutes in dev, 100 in prod)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === "production" ? 100 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -70,7 +70,6 @@ import mentorRouter from "./routes/mentor.routes.js";
 import dashboardRouter from "./routes/dashboard.routes.js";
 import recruiterRouter from "./routes/recruiter.routes.js";
 import evolutionRouter from "./routes/evolution.routes.js";
-import careerTwinRouter from "./routes/careerTwin.routes.js";
 import opportunityRadarRouter from "./routes/opportunityRadar.routes.js";
 import ceoModeRouter from "./routes/ceoMode.routes.js";
 import settingsRouter from "./routes/settings.routes.js";
@@ -93,7 +92,6 @@ apiRouter.use("/mentor/session", mentorRouter);
 apiRouter.use("/dashboard", dashboardRouter);
 apiRouter.use("/recruiter", recruiterRouter);
 apiRouter.use("/resume-evolution", evolutionRouter);
-apiRouter.use("/career-twin", careerTwinRouter);
 apiRouter.use("/opportunity-radar", opportunityRadarRouter);
 apiRouter.use("/ceo-mode", ceoModeRouter);
 apiRouter.use("/settings", settingsRouter);

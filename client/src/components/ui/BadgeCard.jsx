@@ -1,9 +1,18 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Lock, Sparkles } from "lucide-react";
+import { Layers, Lock, Mic, Sparkles, TrendingUp, Trophy, Zap } from "lucide-react";
+
+const icons = {
+  trophy: Trophy,
+  "trending-up": TrendingUp,
+  mic: Mic,
+  zap: Zap,
+  layers: Layers,
+};
 
 export const BadgeCard = ({ badge }) => {
-  const { title, description, unlocked } = badge;
+  const { title, description, unlocked, icon } = badge;
+  const Icon = icons[icon] || Trophy;
 
   return (
     <motion.div
@@ -19,7 +28,7 @@ export const BadgeCard = ({ badge }) => {
       )}
 
       <div className="flex items-center justify-between">
-        <span className="text-2xl font-bold">{title.split(" ")[0]}</span>
+        <Icon className={`h-7 w-7 ${unlocked ? "text-emerald-300" : "text-slate-500"}`} aria-hidden="true" />
         {unlocked ? (
           <span className="px-3 py-1 bg-[#34D399]/20 text-[#A7F3D0] border border-[#34D399]/40 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
             <Sparkles className="w-3 h-3" /> Unlocked

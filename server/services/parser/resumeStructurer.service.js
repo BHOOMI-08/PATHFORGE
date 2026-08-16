@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+﻿import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_PROMPTS } from "../../constants/prompts.js";
 import dotenv from "dotenv";
 
@@ -23,8 +23,10 @@ const fallbackHeuristicParser = (cleanedText) => {
     "MongoDB", "MySQL", "Redis", "Docker", "Kubernetes", "AWS", "Git", "HTML", "CSS", "TailwindCSS"
   ];
 
+  const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const foundSkills = skillKeywords.filter((sk) =>
-    new RegExp(`\\b${sk}\\b`, "i").test(cleanedText)
+    new RegExp(escapeRegExp(sk), "i").test(cleanedText)
   );
 
   return {
@@ -68,19 +70,18 @@ const fallbackHeuristicParser = (cleanedText) => {
  */
 export const structureResumeText = async (cleanedText) => {
   if (!cleanedText || cleanedText.trim().length === 0) {
-    return fallbackHeuristicParser("");
+    throw new Error("Resume text is empty");
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.warn("GEMINI_API_KEY missing in .env. Using fallback heuristic parser.");
-    return fallbackHeuristicParser(cleanedText);
+    throw new Error("Gemini resume parser is not configured");
   }
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
     const systemPrompt = `${GEMINI_PROMPTS.RESUME_PARSER}
 
@@ -156,11 +157,17 @@ ${cleanedText}`;
     const parsedJson = JSON.parse(jsonString);
     return parsedJson;
   } catch (error) {
-    console.error("Gemini Resume Structuring Error:", error);
-    return fallbackHeuristicParser(cleanedText);
+    console.error("Gemini resume structuring failed:", error.message);
+    throw new Error("Gemini resume parser returned an invalid response");
   }
 };
 
 export default {
   structureResumeText,
 };
+
+
+
+
+
+

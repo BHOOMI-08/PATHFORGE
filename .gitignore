@@ -8,6 +8,7 @@ node_modules/
 .env.development
 .env.production
 .env.staging
+!server/.env.example
 
 # Build outputs
 dist/
@@ -18,6 +19,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+
+# Temporary and build output directories
+tmp/
+output/
+dist/
+build/
 
 # IDE/Editor metadata
 .vscode/

@@ -1,305 +1,306 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import toast from "react-hot-toast";
 import {
-  TrendingUp,
-  Sparkles,
+  Activity,
   Award,
-  Calendar,
-  FileCheck,
-  CheckCircle2,
-  XCircle,
-  FolderPlus,
   BookOpen,
   Briefcase,
+  Calendar,
+  CheckCircle2,
+  FilePlus2,
+  FolderPlus,
   Layers,
-  ArrowUpRight,
+  RefreshCw,
+  Sparkles,
   Zap,
-  Activity,
 } from "lucide-react";
 import {
-  ResponsiveContainer,
-  LineChart,
+  CartesianGrid,
+  Legend,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
 } from "recharts";
-import LoadingSpinner from "../components/ui/LoadingSpinner";
 import BadgeCard from "../components/ui/BadgeCard";
 import { evolutionService } from "../services/evolution.service";
 
+const percent = (value) => (value === null || value === undefined ? "N/A" : `${value}%`);
+const signed = (value) => {
+  if (value === null || value === undefined) return "N/A";
+  return value > 0 ? `+${value}` : String(value);
+};
+
+const getErrorMessage = (error) => {
+  if (error?.status === 401) return "Your session has expired. Please sign in again.";
+  if (error?.status === 403) return "You do not have permission to view resume evolution.";
+  if (error?.status >= 500) return "Resume evolution is temporarily unavailable. Please try again.";
+  if (/timed out|network|fetch/i.test(error?.message || "")) {
+    return "Unable to reach PathForge. Check your connection and try again.";
+  }
+  return error?.message || "Unable to load resume evolution. Please try again.";
+};
+
+const EvolutionTooltip = ({ active, payload, label }) => {
+  if (!active) return null;
+  const values = Object.fromEntries((payload || []).map((entry) => [entry.dataKey, entry.value]));
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs text-slate-200 shadow-xl">
+      <p className="mb-2 font-bold text-slate-100">{label}</p>
+      <p>ATS Score: {percent(values.atsScore)}</p>
+      <p>Latest Job Match: {percent(values.latestJobMatchScore)}</p>
+      <p>Linked Interview: {percent(values.linkedInterviewScore)}</p>
+    </div>
+  );
+};
+
+const LoadingState = () => (
+  <div className="mx-auto max-w-7xl animate-pulse space-y-8 pb-12" aria-label="Loading resume evolution">
+    <div className="h-64 rounded-3xl bg-slate-900/70" />
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {[0, 1, 2].map((item) => <div key={item} className="h-28 rounded-2xl bg-slate-900/70" />)}
+    </div>
+    <div className="h-96 rounded-3xl bg-slate-900/70" />
+  </div>
+);
+
 export const ResumeEvolution = () => {
-  const [loading, setLoading] = useState(true);
-  const [evolution, setEvolution] = useState(null);
+  const [state, setState] = useState({ loading: true, data: null, error: null });
+
+  const fetchEvolutionData = async () => {
+    setState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const response = await evolutionService.getResumeEvolution();
+      setState({ loading: false, data: response?.data || response, error: null });
+    } catch (error) {
+      setState({ loading: false, data: null, error: getErrorMessage(error) });
+    }
+  };
 
   useEffect(() => {
     fetchEvolutionData();
   }, []);
 
-  const fetchEvolutionData = async () => {
-    setLoading(true);
-    try {
-      const res = await evolutionService.getResumeEvolution();
-      const payload = res?.data || res;
-      if (payload && typeof payload === "object") {
-        setEvolution(payload);
-      }
-    } catch (err) {
-      console.error("Failed to load resume evolution data:", err);
-      toast.error("Failed to load resume evolution data.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (state.loading) return <LoadingState />;
 
-  if (loading) {
+  if (state.error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <LoadingSpinner />
-        <p className="text-slate-400 text-sm">Aggregating candidate evolution trajectory...</p>
+      <div className="mx-auto flex min-h-[55vh] max-w-xl flex-col items-center justify-center text-center">
+        <Activity className="mb-4 h-10 w-10 text-rose-400" />
+        <h1 className="text-2xl font-bold text-slate-100">Unable to load Resume Evolution</h1>
+        <p className="mt-2 text-sm text-slate-400">{state.error}</p>
+        <button
+          type="button"
+          onClick={fetchEvolutionData}
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
+        >
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
       </div>
     );
   }
 
-  const timeline = evolution?.timeline || [];
-  const deltas = evolution?.deltas || { atsDelta: 0, interviewDelta: 0, addedSkillsCount: 0 };
-  const insights = evolution?.insights || [];
-  const skillDiff = evolution?.skillDiff || { added: [], removed: [] };
-  const sectionChanges = evolution?.sectionChanges || { addedProjects: [], addedCertifications: [], addedExperience: [] };
-  const badges = evolution?.badges || [];
+  const evolution = state.data;
+  const versions = evolution?.versions || [];
+
+  if (versions.length === 0) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10">
+          <FilePlus2 className="h-8 w-8 text-primary-light" />
+        </div>
+        <h1 className="mt-5 text-3xl font-display font-black text-slate-100">No resume versions yet</h1>
+        <p className="mt-2 text-sm text-slate-400">
+          Upload your first resume to start tracking real changes across versions.
+        </p>
+        <Link
+          to="/dashboard/resumes"
+          className="mt-6 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white"
+        >
+          Upload Resume
+        </Link>
+      </div>
+    );
+  }
+
+  const summary = evolution.summary;
+  const comparison = evolution.evolution;
+  const hasProgression = versions.length > 1;
+  const chartData = versions.map((version) => ({
+    version: version.label,
+    atsScore: version.metrics.atsScore,
+    latestJobMatchScore: version.metrics.latestJobMatchScore,
+    linkedInterviewScore: version.metrics.linkedInterviewScore,
+  }));
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 animate-fade-in">
-      {/* Spotify-Wrapped Style Growth Hero Banner */}
-      <div className="relative rounded-3xl p-8 sm:p-10 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 overflow-hidden shadow-2xl backdrop-blur-md">
-        <div className="absolute -top-24 -right-24 w-80 h-80 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          <div className="space-y-3 max-w-2xl">
-            <span className="px-3 py-1 bg-primary/20 border border-primary/40 rounded-full text-xs font-bold text-primary-light flex items-center gap-1.5 w-fit">
-              <Sparkles className="w-3.5 h-3.5" /> Spotify Wrapped + LinkedIn Analytics Style
+    <div className="mx-auto max-w-7xl animate-fade-in space-y-8 pb-12">
+      <section className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 shadow-2xl sm:p-10">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
+        <div className="relative z-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
+          <div className="max-w-2xl space-y-3">
+            <span className="flex w-fit items-center gap-1.5 rounded-full border border-primary/40 bg-primary/20 px-3 py-1 text-xs font-bold text-primary-light">
+              <Sparkles className="h-3.5 w-3.5" /> Resume progression analytics
             </span>
-
-            <h1 className="text-4xl sm:text-5xl font-display font-black text-slate-100 tracking-tight">
-              AI Resume Evolution
-            </h1>
-
-            <p className="text-slate-300 text-base leading-relaxed">
-              Track how your candidate profile, ATS keyword density, technical skill portfolio, and mock interview performance have evolved across iterations.
+            <h1 className="text-4xl font-display font-black tracking-tight text-slate-100 sm:text-5xl">AI Resume Evolution</h1>
+            <p className="text-base leading-relaxed text-slate-300">
+              Compare immutable resume uploads with their linked ATS, Job Match, and interview results.
             </p>
+            {!hasProgression && (
+              <p className="text-sm font-medium text-amber-300">Upload an updated resume to unlock progression tracking.</p>
+            )}
           </div>
 
-          {/* Highlights Quick Stats Grid */}
-          <div className="grid grid-cols-3 gap-4 shrink-0">
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl text-center">
-              <span className="text-2xl sm:text-3xl font-display font-black text-emerald-400">
-                +{deltas.atsDelta > 0 ? deltas.atsDelta : 0}
-              </span>
-              <span className="block text-[11px] text-slate-400 mt-1 font-medium">ATS Points</span>
+          <div className="grid shrink-0 grid-cols-3 gap-3 sm:gap-4">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-center">
+              <span className="text-2xl font-display font-black text-emerald-400 sm:text-3xl">{signed(summary.atsDelta)}</span>
+              <span className="mt-1 block text-[11px] font-medium text-slate-400">ATS Points</span>
             </div>
-
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl text-center">
-              <span className="text-2xl sm:text-3xl font-display font-black text-primary-light">
-                +{deltas.addedSkillsCount}
-              </span>
-              <span className="block text-[11px] text-slate-400 mt-1 font-medium">New Skills</span>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-center">
+              <span className="text-2xl font-display font-black text-primary-light sm:text-3xl">+{summary.newSkillCount}</span>
+              <span className="mt-1 block text-[11px] font-medium text-slate-400">New Skills</span>
             </div>
-
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl text-center">
-              <span className="text-2xl sm:text-3xl font-display font-black text-amber-400">
-                {evolution?.resumesCount || 1}
-              </span>
-              <span className="block text-[11px] text-slate-400 mt-1 font-medium">Versions</span>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-center">
+              <span className="text-2xl font-display font-black text-amber-400 sm:text-3xl">{summary.versionCount}</span>
+              <span className="mt-1 block text-[11px] font-medium text-slate-400">Versions</span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* AI Evolution Insights Summary Cards */}
-      {insights.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {insights.map((insight, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="p-5 bg-slate-900/60 border border-slate-800 rounded-2xl flex items-start gap-3 backdrop-blur-md"
-            >
-              <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary-light shrink-0 mt-0.5">
-                <Zap className="w-4 h-4" />
-              </div>
-              <p className="text-xs text-slate-300 font-medium leading-relaxed">{insight}</p>
-            </motion.div>
+      {evolution.insights.length > 0 && (
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {evolution.insights.map((insight) => (
+            <div key={insight} className="flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-primary-light" />
+              <p className="text-xs font-medium leading-relaxed text-slate-300">{insight}</p>
+            </div>
           ))}
-        </div>
+        </section>
       )}
 
-      {/* Achievement Badges Ribbon */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-display font-bold text-slate-100 flex items-center gap-2">
-          <Award className="w-5 h-5 text-amber-400" /> Automatically Unlocked Badges
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {badges.map((b) => (
-            <BadgeCard key={b.id} badge={b} />
-          ))}
+      <section className="space-y-4">
+        <h2 className="flex items-center gap-2 text-xl font-display font-bold text-slate-100">
+          <Award className="h-5 w-5 text-amber-400" /> Automatically Unlocked Badges
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {evolution.badges.map((badge) => <BadgeCard key={badge.id} badge={badge} />)}
         </div>
-      </div>
+      </section>
 
-      {/* Recharts Trajectory Graph */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div>
-            <h3 className="text-xl font-display font-bold text-slate-100 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary-light" /> Multi-Metric Evolution Graph
-            </h3>
-            <p className="text-slate-400 text-xs mt-0.5">
-              Trajectory comparing ATS Score, Job Match %, and Mock Interview scores across resume versions.
-            </p>
-          </div>
+      <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-md sm:p-8">
+        <div className="border-b border-slate-800 pb-4">
+          <h2 className="flex items-center gap-2 text-xl font-display font-bold text-slate-100">
+            <Activity className="h-5 w-5 text-primary-light" /> Multi-Metric Evolution Graph
+          </h2>
+          <p className="mt-1 text-xs text-slate-400">Latest linked result for each resume version; missing results are not plotted.</p>
         </div>
-
-        <div className="h-72 w-full pt-4">
+        <div className="h-80 w-full overflow-hidden pt-3" role="img" aria-label="Resume score evolution chart">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={timeline} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 8, right: 16, left: -16, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="version" stroke="#64748b" tick={{ fontSize: 12 }} />
-              <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#020617",
-                  borderColor: "#334155",
-                  borderRadius: "12px",
-                  color: "#f8fafc",
-                  fontSize: "12px",
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-              <Line type="monotone" dataKey="atsScore" name="ATS Score" stroke="#6366f1" strokeWidth={3} dot={{ r: 5 }} />
-              <Line type="monotone" dataKey="jobMatchScore" name="Job Match %" stroke="#10b981" strokeWidth={3} dot={{ r: 5 }} />
-              <Line type="monotone" dataKey="interviewScore" name="Interview Score" stroke="#f59e0b" strokeWidth={3} dot={{ r: 5 }} />
+              <XAxis dataKey="version" stroke="#64748b" tick={{ fontSize: 11 }} minTickGap={18} />
+              <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fontSize: 11 }} />
+              <Tooltip content={<EvolutionTooltip />} />
+              <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+              <Line connectNulls={false} type="monotone" dataKey="atsScore" name="ATS Score" stroke="#6366f1" strokeWidth={3} dot={{ r: 4 }} />
+              <Line connectNulls={false} type="monotone" dataKey="latestJobMatchScore" name="Latest Job Match" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} />
+              <Line connectNulls={false} type="monotone" dataKey="linkedInterviewScore" name="Linked Interview" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+        {!hasProgression && <p className="text-center text-xs text-slate-500">One real point is shown. Upload another resume version to start a trajectory.</p>}
+      </section>
 
-      {/* Chronological Resume Versions Timeline */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-6">
+      <section className="space-y-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-md sm:p-8">
         <div className="border-b border-slate-800 pb-4">
-          <h3 className="text-xl font-display font-bold text-slate-100 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-accent-light" /> Chronological Version Timeline
-          </h3>
-          <p className="text-slate-400 text-sm mt-1">
-            Every uploaded version of your resume tracked with metrics.
-          </p>
+          <h2 className="flex items-center gap-2 text-xl font-display font-bold text-slate-100">
+            <Calendar className="h-5 w-5 text-accent-light" /> Chronological Version Timeline
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">Oldest to newest, using stable upload version numbers.</p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {timeline.map((item, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 15 }}
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {versions.map((version, index) => (
+            <motion.article
+              key={version.id}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="p-6 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-4 relative overflow-hidden"
+              transition={{ delay: Math.min(index * 0.04, 0.3) }}
+              className="space-y-4 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60 p-5"
             >
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 bg-primary/10 border border-primary/20 text-primary-light font-bold text-xs rounded-xl">
-                  {item.version}
-                </span>
-                <span className="text-xs text-slate-400">
-                  {new Date(item.uploadedAt).toLocaleDateString()}
-                </span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary-light">{version.label}</span>
+                <time className="text-xs text-slate-400" dateTime={version.uploadedAt}>
+                  {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(version.uploadedAt))}
+                </time>
               </div>
-
               <div>
-                <h4 className="font-semibold text-slate-100 text-sm truncate">{item.fileName}</h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {item.skillsCount} Skills • {item.projectsCount} Projects • {item.certificationsCount} Certs
+                <h3 className="truncate text-sm font-semibold text-slate-100" title={version.fileName}>{version.fileName}</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  {version.profile.skillsCount} Skills · {version.profile.projectsCount} Projects · {version.profile.certificationsCount} Certs · {version.profile.experienceCount} Experience
                 </p>
               </div>
-
-              <div className="pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 bg-slate-900 rounded-xl">
-                  <span className="text-xs text-slate-400 block font-medium">ATS</span>
-                  <span className="text-sm font-bold text-indigo-400">{item.atsScore}%</span>
-                </div>
-                <div className="p-2 bg-slate-900 rounded-xl">
-                  <span className="text-xs text-slate-400 block font-medium">Match</span>
-                  <span className="text-sm font-bold text-emerald-400">{item.jobMatchScore}%</span>
-                </div>
-                <div className="p-2 bg-slate-900 rounded-xl">
-                  <span className="text-xs text-slate-400 block font-medium">Interview</span>
-                  <span className="text-sm font-bold text-amber-400">{item.interviewScore}%</span>
-                </div>
+              <div className="grid grid-cols-3 gap-2 border-t border-slate-800/80 pt-3 text-center">
+                <Metric label="ATS" value={version.metrics.atsScore} className="text-indigo-400" />
+                <Metric label="Match" value={version.metrics.latestJobMatchScore} className="text-emerald-400" />
+                <Metric label="Interview" value={version.metrics.linkedInterviewScore} className="text-amber-400" />
               </div>
-            </motion.div>
+            </motion.article>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Skill Evolution Diff Grid */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md space-y-6">
+      <section className="space-y-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-md sm:p-8">
         <div className="border-b border-slate-800 pb-4">
-          <h3 className="text-xl font-display font-bold text-slate-100 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-emerald-400" /> Skill Evolution Diff (Resume V1 vs Latest)
-          </h3>
-          <p className="text-slate-400 text-sm mt-1">
-            Technologies and tools acquired since your initial resume baseline.
-          </p>
+          <h2 className="flex items-center gap-2 text-xl font-display font-bold text-slate-100">
+            <Layers className="h-5 w-5 text-emerald-400" /> Skill Evolution Diff (Resume V{summary.baselineVersionNumber} vs Resume V{summary.latestVersionNumber})
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">Normalized comparison of the earliest and newest remaining resume snapshots.</p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Newly Added Skills */}
-          <div className="p-6 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-4">
-            <h4 className="font-semibold text-emerald-400 text-sm flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" /> Newly Added Technical Competencies ({skillDiff.added.length})
-            </h4>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-6">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" /> Newly Added Technical Competencies ({comparison.newSkills.length})
+            </h3>
             <div className="flex flex-wrap gap-2">
-              {skillDiff.added.length > 0 ? (
-                skillDiff.added.map((skill, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1.5 bg-emerald-950/40 border border-emerald-800/50 text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> {skill}
-                  </span>
-                ))
-              ) : (
-                <span className="text-slate-500 text-xs">All current skills were present in initial version baseline.</span>
+              {comparison.newSkills.length > 0 ? comparison.newSkills.map((skill) => (
+                <span key={skill} className="flex items-center gap-1.5 rounded-xl border border-emerald-800/50 bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {skill}
+                </span>
+              )) : (
+                <span className="text-xs text-slate-500">{hasProgression ? "No new normalized skills in the latest resume." : "No evolution yet—upload another version to compare."}</span>
               )}
             </div>
           </div>
-
-          {/* Section Changes */}
-          <div className="p-6 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-4">
-            <h4 className="font-semibold text-primary-light text-sm flex items-center gap-2">
-              <FolderPlus className="w-4 h-4" /> Resume Section Enhancements
-            </h4>
+          <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-6">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-primary-light"><FolderPlus className="h-4 w-4" /> Resume Section Enhancements</h3>
             <div className="space-y-2 text-xs text-slate-300">
-              <p className="flex items-center gap-2">
-                <FolderPlus className="w-3.5 h-3.5 text-accent-light" />
-                <span className="font-bold text-slate-100">{sectionChanges.addedProjects.length}</span> New Projects Added
-              </p>
-              <p className="flex items-center gap-2">
-                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-bold text-slate-100">{sectionChanges.addedCertifications.length}</span> New Certifications Earned
-              </p>
-              <p className="flex items-center gap-2">
-                <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="font-bold text-slate-100">{sectionChanges.addedExperience.length}</span> Work Experience Additions
-              </p>
+              <Enhancement icon={FolderPlus} count={comparison.newProjects.length} label="New Projects Added" />
+              <Enhancement icon={BookOpen} count={comparison.newCertifications.length} label="New Certifications Earned" />
+              <Enhancement icon={Briefcase} count={comparison.newExperience.length} label="Work Experience Additions" />
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
+
+const Metric = ({ label, value, className }) => (
+  <div className="rounded-xl bg-slate-900 p-2">
+    <span className="block text-[11px] font-medium text-slate-400">{label}</span>
+    <span className={`text-sm font-bold ${className}`}>{percent(value)}</span>
+  </div>
+);
+
+const Enhancement = ({ icon: Icon, count, label }) => (
+  <p className="flex items-center gap-2">
+    <Icon className="h-3.5 w-3.5 text-accent-light" />
+    <span className="font-bold text-slate-100">{count}</span> {label}
+  </p>
+);
 
 export default ResumeEvolution;

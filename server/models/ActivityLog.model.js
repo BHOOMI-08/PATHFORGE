@@ -16,10 +16,18 @@ const activityLogSchema = new mongoose.Schema(
         "JOB_MATCHED",
         "ROADMAP_GENERATED",
         "INTERVIEW_COMPLETED",
+        "RECRUITER_SIMULATED",
         "TASK_COMPLETED",
         "CAREER_DNA_UPDATED",
+        "OPPORTUNITY_RADAR_SCANNED",
+        "CEO_STRATEGY_GENERATED",
       ],
       required: true,
+    },
+    sourceId: {
+      type: String,
+      trim: true,
+      default: undefined,
     },
     description: {
       type: String,
@@ -38,6 +46,16 @@ const activityLogSchema = new mongoose.Schema(
   {
     timestamps: true,
   }
+);
+
+activityLogSchema.index({ user: 1, createdAt: -1 }, { name: "activity_user_recent" });
+activityLogSchema.index(
+  { user: 1, action: 1, sourceId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { sourceId: { $type: "string" } },
+    name: "activity_logical_event_unique",
+  },
 );
 
 const ActivityLog = mongoose.model("ActivityLog", activityLogSchema);

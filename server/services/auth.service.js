@@ -112,21 +112,26 @@ export const refreshAccessToken = async (incomingRefreshToken) => {
 
   // Compare stored token with incoming token to prevent replay attacks
   if (user.refreshToken !== incomingRefreshToken) {
-    // If mismatch is detected, clear token (potential hijack attempt) and force re-login
-    user.refreshToken = undefined;
-    await user.save();
+    // Reject a stale/replayed token without revoking a newer token that may have
+    // just been issued by a concurrent refresh request.
     throw new ApiError(STATUS_CODES.UNAUTHORIZED, "Refresh token mismatch or re-used");
   }
 
-  // Generate new token pair (Refresh Token Rotation)
+  // Generate the replacement pair, then atomically exchange the incoming token.
+  // Only one concurrent request can match the stored token and win the rotation.
   const newAccessToken = generateAccessToken(user);
   const newRefreshToken = generateRefreshToken(user);
+  const rotatedUser = await User.findOneAndUpdate(
+    { _id: user._id, refreshToken: incomingRefreshToken },
+    { $set: { refreshToken: newRefreshToken } },
+    { new: true },
+  ).select("+refreshToken");
 
-  // Persist rotated refresh token
-  user.refreshToken = newRefreshToken;
-  await user.save();
+  if (!rotatedUser) {
+    throw new ApiError(STATUS_CODES.UNAUTHORIZED, "Refresh token mismatch or re-used");
+  }
 
-  const sanitizedUser = user.toObject();
+  const sanitizedUser = rotatedUser.toObject();
   delete sanitizedUser.password;
   delete sanitizedUser.refreshToken;
 

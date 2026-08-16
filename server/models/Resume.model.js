@@ -8,6 +8,11 @@ const resumeSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    versionNumber: {
+      type: Number,
+      min: 1,
+      default: undefined,
+    },
     fileName: {
       type: String,
       required: true,
@@ -96,6 +101,16 @@ const resumeSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+resumeSchema.index(
+  { user: 1, versionNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { versionNumber: { $type: "number" } },
+    name: "resume_user_version_unique",
+  },
+);
+resumeSchema.index({ user: 1, createdAt: 1 }, { name: "resume_user_chronology" });
 
 const Resume = mongoose.model("Resume", resumeSchema);
 

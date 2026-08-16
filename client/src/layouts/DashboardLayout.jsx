@@ -91,7 +91,7 @@ export const DashboardLayout = () => {
         `}
       >
         {/* Sidebar Header */}
-        <div className="flex h-20 items-center justify-between px-5 border-b border-white/5">
+        <div className={`flex h-20 items-center justify-between border-b border-white/5 ${isSidebarCollapsed ? "px-1" : "px-5"}`}>
           <Link
             to="/dashboard"
             className="flex items-center space-x-3 overflow-hidden group"
@@ -109,7 +109,7 @@ export const DashboardLayout = () => {
           {/* Collapse sidebar button */}
           <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="hidden lg:flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-[#041220] text-slate-400 hover:text-white hover:border-[#6EE7C8]/40 focus:outline-none transition-all"
+            className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#041220] text-slate-400 hover:text-white hover:border-[#6EE7C8]/40 focus:outline-none transition-all"
           >
             {isSidebarCollapsed ? (
               <Icons.ChevronRight size={16} />

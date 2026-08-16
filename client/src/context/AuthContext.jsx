@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { login as apiLogin, logout as apiLogout, refresh as apiRefresh, getCurrentUser } from "../services/auth.service.js";
 import { toast } from "react-hot-toast";
+import { SESSION_EXPIRED_EVENT } from "../utils/api.js";
 
 const AuthContext = createContext(null);
 
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
       setUser(loggedUser);
       setIsAuthenticated(true);
       return loggedUser;
-    } catch (error) {
+    } catch {
       // On failure/unauthorized error, attempt silent refresh
       try {
         await apiRefresh();
@@ -29,7 +30,7 @@ export const AuthProvider = ({ children }) => {
         setUser(loggedUser);
         setIsAuthenticated(true);
         return loggedUser;
-      } catch (refreshError) {
+      } catch {
         setUser(null);
         setIsAuthenticated(false);
         return null;
@@ -45,6 +46,17 @@ export const AuthProvider = ({ children }) => {
   // Session restoration on initial application load
   useEffect(() => {
     fetchCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    const handleExpiredSession = () => {
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsLoading(false);
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpiredSession);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpiredSession);
   }, []);
 
   const login = async (email, password) => {
@@ -105,4 +117,3 @@ export const useAuth = () => {
 };
 
 export default AuthContext;
-

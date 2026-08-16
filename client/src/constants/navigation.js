@@ -45,11 +45,6 @@ export const NAVIGATION_LINKS = [
     iconName: "TrendingUp",
   },
   {
-    label: "Career Twin",
-    path: "/dashboard/career-twin",
-    iconName: "Sparkles",
-  },
-  {
     label: "Opportunity Radar",
     path: "/dashboard/opportunity-radar",
     iconName: "Compass",

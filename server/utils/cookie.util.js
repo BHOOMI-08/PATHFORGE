@@ -1,13 +1,19 @@
 /**
  * Helper options matching secure cookie specifications
  */
-const getCookieOptions = (maxAge) => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
-  path: "/",
-  ...(maxAge !== undefined ? { maxAge } : {}),
-});
+const getCookieOptions = (maxAge) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    // The production frontend and API are hosted on different sites
+    // (Vercel -> Railway), so cross-site credentialed fetches require None.
+    sameSite: isProduction ? "none" : "strict",
+    path: "/",
+    ...(maxAge !== undefined ? { maxAge } : {}),
+  };
+};
 
 /**
  * Set Access Token cookie on the response object

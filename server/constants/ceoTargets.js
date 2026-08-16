@@ -1,0 +1,86 @@
+export const CEO_ANALYSIS_VERSION = 1;
+
+export const CEO_TARGETS = Object.freeze([
+  {
+    id: "software-engineer",
+    role: "Software Engineer",
+    level: "entry",
+    minimumYears: 0,
+    aliases: ["software engineer", "sde", "swe"],
+    coreSkills: ["Programming", "Data Structures", "OOP", "Git"],
+    supportingSkills: ["Testing", "Databases", "REST APIs", "System Design"],
+    interviewFocus: ["Data structures and algorithms", "Coding clarity", "Object-oriented design", "Behavioral ownership"],
+  },
+  {
+    id: "backend-engineer",
+    role: "Backend Engineer",
+    level: "mid",
+    minimumYears: 1,
+    aliases: ["backend engineer", "backend developer", "server engineer"],
+    coreSkills: ["Programming", "REST APIs", "Databases", "Authentication"],
+    supportingSkills: ["System Design", "Testing", "Docker", "Cloud", "Monitoring"],
+    interviewFocus: ["API design", "Database modeling", "Backend debugging", "System design"],
+  },
+  {
+    id: "senior-backend-engineer",
+    role: "Senior Backend Engineer",
+    level: "senior",
+    minimumYears: 4,
+    aliases: ["senior backend engineer", "senior backend developer", "lead backend engineer"],
+    coreSkills: ["Programming", "REST APIs", "Databases", "System Design", "Testing"],
+    supportingSkills: ["Docker", "Cloud", "CI/CD", "Monitoring", "Leadership"],
+    interviewFocus: ["Distributed system design", "Technical trade-offs", "Operational excellence", "Technical leadership"],
+  },
+  {
+    id: "full-stack-engineer",
+    role: "Full Stack Engineer",
+    level: "mid",
+    minimumYears: 1,
+    aliases: ["full stack engineer", "full-stack engineer", "full stack developer", "full-stack developer"],
+    coreSkills: ["JavaScript", "React", "Node.js", "REST APIs", "Databases"],
+    supportingSkills: ["HTML", "CSS", "Testing", "Docker", "Git"],
+    interviewFocus: ["Frontend architecture", "API design", "End-to-end debugging", "Web system design"],
+  },
+  {
+    id: "machine-learning-engineer",
+    role: "Machine Learning Engineer",
+    level: "mid",
+    minimumYears: 1,
+    aliases: ["machine learning engineer", "ml engineer", "machine learning developer"],
+    coreSkills: ["Python", "Machine Learning", "Statistics", "Data Structures"],
+    supportingSkills: ["SQL", "Deep Learning", "MLOps", "Cloud", "Docker"],
+    interviewFocus: ["ML fundamentals", "Model evaluation", "Applied coding", "ML system design"],
+  },
+  {
+    id: "ai-engineer",
+    role: "AI Engineer",
+    level: "mid",
+    minimumYears: 1,
+    aliases: ["ai engineer", "artificial intelligence engineer", "generative ai engineer", "genai engineer"],
+    coreSkills: ["Python", "Machine Learning", "REST APIs", "Data Structures"],
+    supportingSkills: ["LLMs", "Prompt Engineering", "Vector Databases", "Cloud", "MLOps"],
+    interviewFocus: ["Applied AI design", "Model evaluation", "Python coding", "Production AI reliability"],
+  },
+  {
+    id: "solutions-architect",
+    role: "Solutions Architect",
+    level: "senior",
+    minimumYears: 4,
+    aliases: ["solutions architect", "solution architect", "cloud solutions architect"],
+    coreSkills: ["System Design", "Cloud", "Networking", "Databases"],
+    supportingSkills: ["Security", "Docker", "Kubernetes", "Communication", "Leadership"],
+    interviewFocus: ["Architecture trade-offs", "Cloud solution design", "Stakeholder communication", "Security and reliability"],
+  },
+]);
+
+export const CEO_COMPANIES = Object.freeze(["Google", "Amazon"]);
+
+export const CEO_PRESETS = Object.freeze([
+  "Google SDE",
+  "Amazon SDE",
+  "Senior Backend Engineer",
+  "Full Stack Engineer",
+  "Machine Learning Engineer",
+  "AI Engineer",
+  "Solutions Architect",
+]);

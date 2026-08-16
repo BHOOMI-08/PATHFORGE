@@ -7,7 +7,7 @@ export const roadmapService = {
    * @returns {Promise<object>} Roadmap object
    */
   async generateRoadmap(payload = {}) {
-    const response = await api.post("/roadmap/generate", payload);
+    const response = await api.post("/roadmap/generate", payload, { timeout: 135000 });
     return response.data;
   },
 
@@ -25,8 +25,11 @@ export const roadmapService = {
    * @param {string} taskId 
    * @returns {Promise<object>} Updated roadmap
    */
-  async toggleTaskStatus(taskId) {
-    const response = await api.patch(`/roadmap/task/${taskId}`);
+  async toggleTaskStatus(taskId, completed) {
+    const response = await api.patch(
+      `/roadmap/task/${encodeURIComponent(taskId)}`,
+      { completed },
+    );
     return response.data;
   },
 

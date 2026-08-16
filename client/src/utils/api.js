@@ -1,4 +1,10 @@
-const BASE_URL = "http://localhost:5000/api/v1";
+const BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  "/api/v1"
+).replace(/\/$/, "");
+
+const SESSION_EXPIRED_EVENT = "pathforge:session-expired";
+let refreshPromise = null;
 
 export class ApiError extends Error {
   constructor(status, message, body) {
@@ -8,6 +14,45 @@ export class ApiError extends Error {
     this.body = body;
   }
 }
+
+const notifySessionExpired = () => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  }
+};
+
+const refreshSession = () => {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new ApiError(
+            response.status,
+            data?.message || "Your session has expired",
+            data,
+          );
+        }
+        return data;
+      })
+      .catch((error) => {
+        notifySessionExpired();
+        throw error;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+};
 
 const request = async (endpoint, options = {}) => {
   const {
@@ -92,24 +137,8 @@ const request = async (endpoint, options = {}) => {
         endpoint !== "/auth/refresh" &&
         endpoint !== "/auth/register"
       ) {
-        try {
-          // Attempt silent token refresh
-          const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (refreshResponse.ok) {
-            // Retry the original request configuration, setting _retry flag to true
-            return await request(endpoint, { ...options, _retry: true });
-          }
-        } catch (refreshErr) {
-          console.error("Silent token refresh error:", refreshErr);
-        }
+        await refreshSession();
+        return await request(endpoint, { ...options, _retry: true });
       }
 
       const errorMessage = responseData?.message || `Request failed with status ${response.status}`;
@@ -125,6 +154,8 @@ const request = async (endpoint, options = {}) => {
     throw error;
   }
 };
+
+export { SESSION_EXPIRED_EVENT };
 
 export const api = {
   get: (endpoint, options = {}) => request(endpoint, { ...options, method: "GET" }),

@@ -1,54 +1,17 @@
 import mongoose from "mongoose";
-
-const jobMatchSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    resume: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Resume",
-      required: true,
-      index: true,
-    },
-    jobTitle: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    companyName: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-    jobDescription: {
-      type: String,
-      required: true,
-    },
-    matchScore: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 100,
-      default: 0,
-    },
-    matchBreakdown: {
-      technicalMatch: { type: Number, default: 0 },
-      experienceMatch: { type: Number, default: 0 },
-      educationMatch: { type: Number, default: 0 },
-    },
-    matchingSkills: [{ type: String }],
-    missingSkills: [{ type: String }],
-    recommendations: [{ type: String }],
+const jobMatchSchema = new mongoose.Schema({
+  user:{type:mongoose.Schema.Types.ObjectId,ref:"User",required:true,index:true},
+  resume:{type:mongoose.Schema.Types.ObjectId,ref:"Resume",required:true,index:true},
+  jobTitle:{type:String,required:true,trim:true,minlength:2,maxlength:120},
+  companyName:{type:String,default:"",trim:true,maxlength:120},
+  jobDescription:{type:String,required:true,minlength:80,maxlength:12000},
+  matchScore:{type:Number,required:true,min:0,max:100},
+  matchBreakdown:{
+    technicalMatch:{type:Number,required:true,min:0,max:100}, experienceMatch:{type:Number,required:true,min:0,max:100},
+    educationMatch:{type:Number,required:true,min:0,max:100}, projectMatch:{type:Number,required:true,min:0,max:100},
   },
-  {
-    timestamps: true,
-  }
-);
-
-const JobMatch = mongoose.model("JobMatch", jobMatchSchema);
-
-export default JobMatch;
+  matchingSkills:[String], missingSkills:[String], strengths:[String], weaknesses:[String], recommendations:[String], summary:{type:String,required:true,maxlength:2000},
+},{timestamps:true});
+jobMatchSchema.index({user:1,createdAt:-1});
+jobMatchSchema.index({user:1,resume:1,createdAt:-1},{name:"job_match_user_resume_latest"});
+export default mongoose.model("JobMatch",jobMatchSchema);
