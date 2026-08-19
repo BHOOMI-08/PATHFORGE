@@ -1,10 +1,10 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import mongoose from "mongoose";
 import connectDB from "./config/db.js";
+import validateEnvironment from "./config/env.js";
 import { app } from "./app.js";
 
-// Load environmental parameters
-dotenv.config();
+validateEnvironment();
 
 const PORT = process.env.PORT || 5000;
 

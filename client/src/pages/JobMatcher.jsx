@@ -107,7 +107,7 @@ export const JobMatcher = () => {
         setCurrentMatch(remaining.length > 0 ? remaining[0] : null);
       }
       toast.success("Job match record removed.");
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete record.");
     }
   };

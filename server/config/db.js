@@ -23,7 +23,7 @@ const connectDB = async () => {
     console.log(`======================================================\n`);
   } catch (error) {
     console.error(`MongoDB Initial Connection Failure: ${error.message}`);
-    process.exit(1);
+    throw error;
   }
 };
 

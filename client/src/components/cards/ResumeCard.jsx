@@ -16,6 +16,7 @@ export const ResumeCard = ({ resume, onView, onDelete }) => {
     resume.parsedData?.skills?.technical?.slice(0, 4) || [];
 
   const atsScore = resume.matchHistoryMetrics?.atsScoreBaseline ?? 0;
+  const hasATSAnalysis = resume.matchHistoryMetrics?.atsAnalyzed === true;
 
   const handleDelete = async (e) => {
     e.stopPropagation();
@@ -51,7 +52,7 @@ export const ResumeCard = ({ resume, onView, onDelete }) => {
         <div className="shrink-0 flex flex-col items-end">
           <div className="inline-flex items-center space-x-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
             <Award size={12} />
-            <span>{atsScore}% ATS</span>
+            <span>{hasATSAnalysis ? `${atsScore}% ATS` : "Not analyzed"}</span>
           </div>
         </div>
       </div>

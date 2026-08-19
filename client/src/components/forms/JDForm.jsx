@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Briefcase, Building, FileText, Sparkles, Send, RefreshCw } from "lucide-react";
+import { Briefcase, Building, Sparkles, Send, RefreshCw } from "lucide-react";
 
 const SAMPLE_JDS = [
   {

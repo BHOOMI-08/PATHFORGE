@@ -4,7 +4,7 @@ import api from "../utils/api.js";
  * Resume Parsing & Management API service
  */
 export const uploadResume = async (formData) => {
-  return await api.post("/resumes/upload", formData);
+  return await api.post("/resumes/upload", formData, { timeout: 120000 });
 };
 
 export const getUserResumes = async () => {

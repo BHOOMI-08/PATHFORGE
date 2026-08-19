@@ -7,7 +7,7 @@ export const roadmapService = {
    * @returns {Promise<object>} Roadmap object
    */
   async generateRoadmap(payload = {}) {
-    const response = await api.post("/roadmap/generate", payload, { timeout: 135000 });
+    const response = await api.post("/roadmap/generate", payload, { timeout: 200000 });
     return response.data;
   },
 

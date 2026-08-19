@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import {
@@ -12,23 +12,15 @@ import {
   Trash2,
   Lock,
   Save,
-  Check,
-  Globe,
   Sparkles,
-  Award,
   BarChart2,
   AlertTriangle,
   RefreshCw,
-  ExternalLink,
-  Github,
-  Linkedin,
-  LogOut,
-  ChevronRight,
 } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import OnboardingWizard from "../components/forms/OnboardingWizard";
 import { settingsService } from "../services/settings.service";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth.js";
 
 export const ProfileSettings = () => {
   const { user: authUser, logout } = useAuth();
@@ -89,16 +81,11 @@ export const ProfileSettings = () => {
   // Section 10 & 11: Stats & Meta
   const [stats, setStats] = useState({ resumesCount: 0, atsCount: 0, jobMatchesCount: 0, interviewsCount: 0, roadmapsCount: 0 });
   const [latestScores, setLatestScores] = useState({ atsScore: 0, jobMatchScore: 0, interviewScore: 0 });
-  const [accountMeta, setAccountMeta] = useState({ createdAt: "", lastLogin: "" });
 
   // Confirmation Modal
   const [modalTarget, setModalTarget] = useState(null); // null | "resumes" | "ats" | "interviews" | "roadmaps" | "all" | "account"
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
       const res = await settingsService.getUserSettings();
@@ -108,7 +95,6 @@ export const ProfileSettings = () => {
         const u = payload.user || {};
         setName(u.name || authUser?.name || "");
         setEmail(u.email || authUser?.email || "");
-        setAccountMeta({ createdAt: u.createdAt, lastLogin: u.lastLogin });
 
         const s = payload.settings || {};
         setTheme(s.theme || "dark");
@@ -151,7 +137,11 @@ export const ProfileSettings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [authUser?.email, authUser?.name]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleSaveAllSettings = async () => {
     setSaving(true);
@@ -183,8 +173,8 @@ export const ProfileSettings = () => {
       toast.error("New passwords do not match.");
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("New password must be at least 6 characters.");
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+      toast.error("Use 8+ characters with uppercase, lowercase, number, and special character.");
       return;
     }
 
@@ -193,10 +183,11 @@ export const ProfileSettings = () => {
 
     try {
       await settingsService.changePassword({ currentPassword, newPassword });
-      toast.success("Password updated successfully!", { id: toastId });
+      toast.success("Password updated. Please sign in again.", { id: toastId });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      await logout();
     } catch (err) {
       console.error("Change password error:", err);
       toast.error(err.response?.data?.message || err.message || "Failed to update password.", { id: toastId });
@@ -218,7 +209,7 @@ export const ProfileSettings = () => {
       downloadAnchor.click();
       downloadAnchor.remove();
       toast.success("Data export downloaded cleanly!", { id: toastId });
-    } catch (err) {
+    } catch {
       toast.error("Failed to export user data.", { id: toastId });
     }
   };
@@ -237,7 +228,7 @@ export const ProfileSettings = () => {
         toast.success(`Data cleanup for '${modalTarget}' complete!`, { id: toastId });
         fetchSettings();
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to execute data cleanup.", { id: toastId });
     } finally {
       setModalTarget(null);
@@ -710,7 +701,7 @@ export const ProfileSettings = () => {
               <div className="p-4 bg-slate-950/60 border border-slate-800/80 rounded-2xl flex items-center justify-between">
                 <div>
                   <span className="font-semibold text-slate-200 block">Current Active Session</span>
-                  <span className="text-slate-500">Logged in via JWT cookie/bearer authentication</span>
+                  <span className="text-slate-500">Logged in via secure HTTP-only JWT cookies</span>
                 </div>
                 <span className="px-2.5 py-1 bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-bold rounded-lg uppercase">
                   Active
@@ -719,11 +710,11 @@ export const ProfileSettings = () => {
 
               <div className="p-4 bg-slate-950/60 border border-slate-800/80 rounded-2xl flex items-center justify-between">
                 <div>
-                  <span className="font-semibold text-slate-200 block">Google Account</span>
-                  <span className="text-slate-500">Connected authentication provider</span>
+                  <span className="font-semibold text-slate-200 block">Third-party sign-in</span>
+                  <span className="text-slate-500">No OAuth provider is configured</span>
                 </div>
                 <span className="px-2.5 py-1 bg-slate-900 text-slate-400 border border-slate-800 text-[10px] font-bold rounded-lg uppercase">
-                  Connected
+                  Not connected
                 </span>
               </div>
             </div>

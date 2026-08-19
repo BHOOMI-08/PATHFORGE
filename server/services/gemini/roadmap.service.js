@@ -6,7 +6,7 @@ import { validateRoadmapAiResponse } from "../../validators/roadmap.validator.js
 
 const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 const PROVIDER_TIMEOUT_MS = 60_000;
-const MAX_ATTEMPTS = 2;
+const MAX_ATTEMPTS = 3;
 
 const withTimeout = async (promise, timeoutMs) => {
   let timer;
@@ -29,6 +29,11 @@ const validationMessage = (error) =>
         .map((issue) => `${issue.path.join(".") || "response"}: ${issue.message}`)
         .join("; ")
     : error?.message || "Unknown schema error";
+
+const isRateLimitError = (error) =>
+  error?.status === 429 || /quota|rate.?limit|resource exhausted|\b429\b/i.test(error?.message || "");
+const isProviderUnavailable = (error) =>
+  error?.status === 503 || /service unavailable|high demand|temporarily unavailable|\b503\b/i.test(error?.message || "");
 
 const buildPrompt = (context, correction = "") => `You are a senior technical career coach creating a genuinely personalized learning roadmap.
 
@@ -193,12 +198,21 @@ export const generateLearningRoadmap = async ({ context }) => {
       };
     } catch (error) {
       lastError = error;
-      correction = validationMessage(error);
+      if (isRateLimitError(error)) {
+        throw new ApiError(429, "Roadmap AI quota is temporarily unavailable. Please try again later.");
+      }
+      correction = isProviderUnavailable(error) || /timed out/i.test(error?.message || "")
+        ? ""
+        : validationMessage(error);
       console.error(
         `Gemini Roadmap request attempt ${attempt} failed:`,
         error?.message || "Unknown provider error",
       );
     }
+  }
+
+  if (isProviderUnavailable(lastError) || /timed out/i.test(lastError?.message || "")) {
+    throw new ApiError(503, "Roadmap AI is temporarily unavailable. Please try again.");
   }
 
   throw new ApiError(

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ShieldCheck, Lock, KeyRound, EyeOff, Share2, Sparkles } from "lucide-react";
+import { ShieldCheck, Lock, KeyRound, EyeOff, Share2 } from "lucide-react";
 
 const TRUST_CARDS = [
   {

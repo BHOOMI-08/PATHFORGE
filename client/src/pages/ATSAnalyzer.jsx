@@ -10,7 +10,6 @@ import {
   RefreshCw,
   Search,
   UploadCloud,
-  FileText,
   ShieldCheck,
   ArrowRight,
   TrendingUp,

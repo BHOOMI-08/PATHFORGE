@@ -7,15 +7,9 @@ import {
   FileText,
   Upload,
   CheckCircle2,
-  Code,
-  GraduationCap,
-  Briefcase,
-  Layers,
   X,
   Loader2,
   Sparkles,
-  Award,
-  BookOpen,
 } from "lucide-react";
 
 export const ResumeManager = () => {

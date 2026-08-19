@@ -35,7 +35,7 @@ export const analyzeResume = asyncHandler(async (req, res) => {
     await session.withTransaction(async () => {
       const [created] = await ATSAnalysis.create([{ user: userId, resume: resume._id, jobDescription, ...result }], { session });
       createdId = created._id;
-      resume.matchHistoryMetrics = { atsScoreBaseline: result.atsScore, topSkillMatches: result.matchedKeywords, missingKeywords: result.missingKeywords };
+      resume.matchHistoryMetrics = { atsScoreBaseline: result.atsScore, atsAnalyzed: true, topSkillMatches: result.matchedKeywords, missingKeywords: result.missingKeywords };
       await resume.save({ session });
       await recordActivity({
         user: userId,

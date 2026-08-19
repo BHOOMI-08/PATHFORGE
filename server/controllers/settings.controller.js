@@ -11,6 +11,14 @@ import Interview from "../models/Interview.model.js";
 import Roadmap from "../models/Roadmap.model.js";
 import OpportunityRadarScan from "../models/OpportunityRadarScan.model.js";
 import CEOStrategyPlan from "../models/CEOStrategyPlan.model.js";
+import RecruiterSimulator from "../models/RecruiterSimulator.model.js";
+import ActivityLog from "../models/ActivityLog.model.js";
+import Notification from "../models/Notification.model.js";
+import ResumeVersionCounter from "../models/ResumeVersionCounter.model.js";
+import CareerDNA from "../models/CareerDNA.model.js";
+import { deleteFromCloudinary } from "../services/storage/cloudinary.service.js";
+import { passwordSchema } from "../validators/auth.validator.js";
+import { clearAuthCookies } from "../utils/cookie.util.js";
 
 /**
  * Get full User Settings, Account Statistics & Profile Metadata
@@ -145,18 +153,32 @@ export const changePassword = asyncHandler(async (req, res) => {
     throw new ApiError(STATUS_CODES.BAD_REQUEST, "Current password and new password are required");
   }
 
-  const user = await User.findById(userId);
+  const validation = passwordSchema.safeParse(newPassword);
+  if (!validation.success) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      validation.error.errors[0]?.message || "New password is invalid",
+      validation.error.errors.map((error) => error.message),
+    );
+  }
+  if (currentPassword === newPassword) {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, "New password must be different from the current password");
+  }
+
+  const user = await User.findById(userId).select("+password +refreshToken");
   if (!user) {
     throw new ApiError(STATUS_CODES.NOT_FOUND, "User not found");
   }
 
-  const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
+  const isPasswordCorrect = await user.comparePassword(currentPassword);
   if (!isPasswordCorrect) {
     throw new ApiError(STATUS_CODES.UNAUTHORIZED, "Invalid current password");
   }
 
-  user.password = newPassword;
+  user.password = validation.data;
+  user.refreshToken = undefined;
   await user.save();
+  clearAuthCookies(res);
 
   return res.status(STATUS_CODES.OK).json(
     new ApiResponse(STATUS_CODES.OK, null, "Password updated successfully")
@@ -171,8 +193,26 @@ export const deleteUserData = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { target } = req.body; // "resumes" | "ats" | "interviews" | "roadmaps" | "all"
 
+  const deleteResumeHistory = async () => {
+    const resumes = await Resume.find({ user: userId }).select("cloudinaryPublicId").lean();
+    await Promise.allSettled(
+      resumes
+        .map((resume) => resume.cloudinaryPublicId)
+        .filter(Boolean)
+        .map((publicId) => deleteFromCloudinary(publicId)),
+    );
+    await Promise.all([
+      Resume.deleteMany({ user: userId }),
+      ATSAnalysis.deleteMany({ user: userId }),
+      JobMatch.deleteMany({ user: userId }),
+      RecruiterSimulator.deleteMany({ user: userId }),
+      ResumeVersionCounter.deleteMany({ user: userId }),
+    ]);
+    await Interview.updateMany({ user: userId }, { $set: { resume: null } });
+  };
+
   if (target === "resumes") {
-    await Resume.deleteMany({ user: userId });
+    await deleteResumeHistory();
   } else if (target === "ats") {
     await ATSAnalysis.deleteMany({ user: userId });
   } else if (target === "interviews") {
@@ -180,14 +220,14 @@ export const deleteUserData = asyncHandler(async (req, res) => {
   } else if (target === "roadmaps") {
     await Roadmap.deleteMany({ user: userId });
   } else if (target === "all") {
+    await deleteResumeHistory();
     await Promise.all([
-      Resume.deleteMany({ user: userId }),
-      ATSAnalysis.deleteMany({ user: userId }),
-      JobMatch.deleteMany({ user: userId }),
       Interview.deleteMany({ user: userId }),
       Roadmap.deleteMany({ user: userId }),
       OpportunityRadarScan.deleteMany({ user: userId }),
       CEOStrategyPlan.deleteMany({ user: userId }),
+      ActivityLog.deleteMany({ user: userId }),
+      Notification.deleteMany({ user: userId }),
     ]);
   } else {
     throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid deletion target specified");

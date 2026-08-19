@@ -17,10 +17,8 @@ import {
   Clock,
   Heart,
   AlertCircle,
-  Check,
   X,
   Loader2,
-  Edit3,
 } from "lucide-react";
 
 const OPTIONS = {

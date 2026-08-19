@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/useAuth.js";
 import { NAVIGATION_LINKS } from "../constants/navigation.js";
 import * as Icons from "lucide-react";
 import { getCareerDNA } from "../services/career.service.js";

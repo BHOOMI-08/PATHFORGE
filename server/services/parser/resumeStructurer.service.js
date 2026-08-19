@@ -1,8 +1,56 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_PROMPTS } from "../../constants/prompts.js";
 import dotenv from "dotenv";
+import { z } from "zod";
+import ApiError from "../../utils/ApiError.js";
+import { cleanAndParseJson } from "../../utils/jsonValidator.js";
 
 dotenv.config();
+
+const text = (max = 2000) => z.preprocess(
+  (value) => value === null || value === undefined ? "" : value,
+  z.string().trim().max(max),
+);
+const resumeSchema = z.object({
+  contactInfo: z.object({
+    name: text(120), email: text(320), phone: text(80), location: text(200),
+    linkedin: text(500), github: text(500), portfolio: text(500),
+  }).strict(),
+  summary: text(3000),
+  education: z.array(z.object({
+    institution: text(300), degree: text(200), fieldOfStudy: text(200),
+    startDate: text(80), endDate: text(80), grade: text(80), description: text(1500),
+  }).strict()).max(30),
+  experience: z.array(z.object({
+    company: text(300), position: text(300), location: text(200),
+    startDate: text(80), endDate: text(80), isCurrent: z.boolean().default(false),
+    highlights: z.array(text(800)).max(40),
+  }).strict()).max(40),
+  projects: z.array(z.object({
+    title: text(300), description: text(2000), technologies: z.array(text(120)).max(50), link: text(500),
+  }).strict()).max(40),
+  skills: z.object({
+    technical: z.array(text(120)).max(100), soft: z.array(text(120)).max(100),
+    tools: z.array(text(120)).max(100), languages: z.array(text(120)).max(100),
+  }).strict(),
+  certifications: z.array(z.object({
+    name: text(300), issuer: text(300), issueDate: text(80),
+  }).strict()).max(40),
+}).strict();
+
+const withTimeout = async (promise, timeoutMs = 60_000) => {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Gemini request timed out")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
 /**
  * Fallback heuristic parser extracting basic resume fields using regex & keywords
@@ -76,12 +124,15 @@ export const structureResumeText = async (cleanedText) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    throw new Error("Gemini resume parser is not configured");
+    throw new ApiError(503, "Gemini resume parser is not configured");
   }
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
+    const model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
+      generationConfig: { responseMimeType: "application/json", temperature: 0 },
+    });
 
     const systemPrompt = `${GEMINI_PROMPTS.RESUME_PARSER}
 
@@ -145,20 +196,19 @@ Return ONLY valid JSON matching this exact structure without markdown code fence
 Raw Resume Text:
 ${cleanedText}`;
 
-    const result = await model.generateContent(systemPrompt);
+    const result = await withTimeout(model.generateContent(systemPrompt));
     const responseText = result.response.text();
-
-    // Clean JSON response (strip markdown ```json ... ``` tags if present)
-    const jsonString = responseText
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-
-    const parsedJson = JSON.parse(jsonString);
-    return parsedJson;
+    return resumeSchema.parse(cleanAndParseJson(responseText));
   } catch (error) {
+    if (error instanceof ApiError) throw error;
     console.error("Gemini resume structuring failed:", error.message);
-    throw new Error("Gemini resume parser returned an invalid response");
+    if (error?.status === 429 || /quota|rate.?limit|resource exhausted|\b429\b/i.test(error?.message || "")) {
+      throw new ApiError(429, "Gemini resume parser quota is temporarily unavailable");
+    }
+    if (/timed out/i.test(error?.message || "")) {
+      throw new ApiError(503, "Gemini resume parser timed out. Please try again.");
+    }
+    throw new ApiError(502, "Gemini resume parser returned an invalid response");
   }
 };
 

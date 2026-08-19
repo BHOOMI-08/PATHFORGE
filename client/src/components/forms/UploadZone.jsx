@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { uploadResume } from "../../services/resume.service.js";
-import { UploadCloud, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { UploadCloud, FileText, Loader2 } from "lucide-react";
 
 export const UploadZone = ({ onUploadSuccess }) => {
   const [isDragging, setIsDragging] = useState(false);

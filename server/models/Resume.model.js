@@ -93,6 +93,7 @@ const resumeSchema = new mongoose.Schema(
     },
     matchHistoryMetrics: {
       atsScoreBaseline: { type: Number, default: 0 },
+      atsAnalyzed: { type: Boolean, default: false },
       topSkillMatches: [{ type: String }],
       missingKeywords: [{ type: String }],
     },

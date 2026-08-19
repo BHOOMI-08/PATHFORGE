@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -8,18 +9,17 @@ import STATUS_CODES from "./constants/statusCodes.js";
 
 const app = express();
 
-// Load environmental parameters (if server.js hasn't loaded them yet)
-// in production app.js doesn't run config, but we make it safe
-import dotenv from "dotenv";
-dotenv.config();
-
 // 1. Helmet security headers
 app.use(helmet());
 
 // 2. CORS configuration restricted to FRONTEND_URL
+const frontendOrigins = String(process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: frontendOrigins,
     credentials: true,
   })
 );

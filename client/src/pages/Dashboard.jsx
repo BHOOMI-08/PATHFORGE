@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth.js";
 import { getCareerDNA } from "../services/career.service.js";
 import OnboardingWizard from "../components/forms/OnboardingWizard.jsx";
 import {
@@ -8,13 +8,8 @@ import {
   Upload,
   Bot,
   Sliders,
-  CheckCircle2,
-  TrendingUp,
   FileText,
-  Target,
   ArrowRight,
-  Loader2,
-  Award,
   Zap,
 } from "lucide-react";
 
@@ -23,11 +18,9 @@ export const Dashboard = () => {
   const navigate = useNavigate();
 
   const [careerDNA, setCareerDNA] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const fetchProfile = async () => {
-    setIsLoading(true);
     try {
       const res = await getCareerDNA();
       if (res.data?.careerDNA) {
@@ -35,8 +28,6 @@ export const Dashboard = () => {
       }
     } catch (err) {
       console.error("Failed to load Career DNA profile:", err);
-    } finally {
-      setIsLoading(false);
     }
   };
 

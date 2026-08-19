@@ -10,6 +10,10 @@ import asyncHandler from "../utils/asyncHandler.js";
 import STATUS_CODES from "../constants/statusCodes.js";
 import { recordActivity } from "../services/activity.service.js";
 import { allocateResumeVersionNumber } from "../services/resumeVersion.service.js";
+import ATSAnalysis from "../models/ATSAnalysis.model.js";
+import JobMatch from "../models/JobMatch.model.js";
+import RecruiterSimulator from "../models/RecruiterSimulator.model.js";
+import Interview from "../models/Interview.model.js";
 
 /**
  * Handle multipart PDF resume upload, raw text extraction, sanitization, AI structuring, and persistence
@@ -45,19 +49,15 @@ export const uploadAndParseResume = asyncHandler(async (req, res) => {
   if (process.env.NODE_ENV !== "production") console.info(`Resume text extracted: ${cleanedText.length} characters`);
 
   // 4. Translate raw text to structured JSON using AI
-  const parsedData = await structureResumeText(cleanedText);
+  let parsedData;
+  try {
+    parsedData = await structureResumeText(cleanedText);
+  } catch (parseError) {
+    await deleteFromCloudinary(uploadResult.public_id);
+    throw parseError;
+  }
 
-  // 5. Calculate baseline match metrics
-  const techSkillsCount = parsedData.skills?.technical?.length || 0;
-  const hasEmail = Boolean(parsedData.contactInfo?.email);
-  const hasPhone = Boolean(parsedData.contactInfo?.phone);
-
-  let baselineScore = 50;
-  if (hasEmail) baselineScore += 15;
-  if (hasPhone) baselineScore += 15;
-  if (techSkillsCount > 3) baselineScore += 20;
-
-  // 6. Save the resume and its activity as one logical database operation.
+  // 5. Save the resume and its activity as one logical database operation.
   const session = await mongoose.startSession();
   let resume;
 
@@ -76,7 +76,8 @@ export const uploadAndParseResume = asyncHandler(async (req, res) => {
             status: "parsed",
             parsedData,
             matchHistoryMetrics: {
-              atsScoreBaseline: Math.min(100, baselineScore),
+              atsScoreBaseline: 0,
+              atsAnalyzed: false,
               topSkillMatches: parsedData.skills?.technical || [],
               missingKeywords: [],
             },
@@ -174,8 +175,14 @@ export const deleteResume = asyncHandler(async (req, res) => {
     await deleteFromCloudinary(resume.cloudinaryPublicId);
   }
 
-  // Delete from DB
-  await Resume.findByIdAndDelete(id);
+  // Remove the resume and records whose contract requires that resume.
+  await Promise.all([
+    Resume.deleteOne({ _id: id, user: userId }),
+    ATSAnalysis.deleteMany({ user: userId, resume: id }),
+    JobMatch.deleteMany({ user: userId, resume: id }),
+    RecruiterSimulator.deleteMany({ user: userId, resume: id }),
+    Interview.updateMany({ user: userId, resume: id }, { $set: { resume: null } }),
+  ]);
 
   return res
     .status(STATUS_CODES.OK)

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/useAuth.js";
 import { register as apiRegister } from "../services/auth.service.js";
 import {
   Mail,
@@ -18,12 +18,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  CheckCircle2,
-  Bot,
-  Zap,
-  TrendingUp,
-  Activity,
-  Layers
+  Bot
 } from "lucide-react";
 
 import WhyPathForgeSection from "../components/landing/WhyPathForgeSection.jsx";
@@ -99,7 +94,6 @@ export const AuthPage = ({ initialMode = "login" }) => {
     register: loginRegister,
     handleSubmit: handleLoginSubmit,
     formState: { errors: loginErrors },
-    reset: resetLoginForm,
   } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -111,7 +105,6 @@ export const AuthPage = ({ initialMode = "login" }) => {
     handleSubmit: handleRegSubmit,
     watch: watchRegFields,
     formState: { errors: regErrors },
-    reset: resetRegForm,
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "" },
@@ -134,7 +127,7 @@ export const AuthPage = ({ initialMode = "login" }) => {
     try {
       await login(data.email, data.password);
       navigate("/dashboard");
-    } catch (error) {
+    } catch {
       // Toast notification is managed by AuthContext
     } finally {
       setIsLoading(false);
@@ -150,7 +143,7 @@ export const AuthPage = ({ initialMode = "login" }) => {
       try {
         await login(data.email, data.password);
         navigate("/dashboard");
-      } catch (loginErr) {
+      } catch {
         switchMode("login");
       }
     } catch (error) {

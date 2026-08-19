@@ -15,7 +15,11 @@ export const opportunityRadarService = {
    * @returns {Promise<object>} Fresh Radar payload
    */
   async scan(requestId) {
-    const response = await api.post("/opportunity-radar/scan", { requestId });
+    const response = await api.post(
+      "/opportunity-radar/scan",
+      { requestId },
+      { timeout: 75000 },
+    );
     return response.data;
   },
 };

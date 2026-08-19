@@ -96,7 +96,7 @@ const roadmapSchema = new mongoose.Schema(
     generatedBy: { type: String, enum: ["gemini"], required: true },
     geminiMetadata: {
       model: { type: String, required: true, trim: true },
-      attempts: { type: Number, required: true, min: 1, max: 2 },
+      attempts: { type: Number, required: true, min: 1, max: 3 },
       generatedAt: { type: Date, required: true },
       contextHash: { type: String, required: true, trim: true },
       responseHash: { type: String, required: true, trim: true },

@@ -9,13 +9,27 @@ const narrativeSchema = z
   })
   .strict();
 
+const withTimeout = async (promise, timeoutMs = 60_000) => {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Gemini request timed out")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 export const enhanceOpportunityNarrative = async ({ strongestRole, roles, skillGaps }) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return { status: "not_configured", narrative: null };
 
   try {
     const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
-      model: "gemini-3.1-flash-lite",
+      model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
       generationConfig: { responseMimeType: "application/json" },
     });
     const safeEvidence = {
@@ -50,7 +64,7 @@ Return only strict JSON:
   "careerAdvice": "grounded, qualified next-step advice"
 }`;
 
-    const response = await model.generateContent(prompt);
+    const response = await withTimeout(model.generateContent(prompt));
     const narrative = narrativeSchema.parse(cleanAndParseJson(response.response.text()));
     return { status: "generated", narrative };
   } catch (error) {
