@@ -1,8 +1,12 @@
-const BASE_URL = (
+const rawUrl = (
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_API_BASE_URL ||
-  "/api/v1"
-).replace(/\/$/, "");
+  ""
+).trim().replace(/\/$/, "");
+
+const BASE_URL = rawUrl
+  ? (rawUrl.endsWith("/api/v1") ? rawUrl : `${rawUrl}/api/v1`)
+  : "/api/v1";
 
 const SESSION_EXPIRED_EVENT = "pathforge:session-expired";
 let refreshPromise = null;
@@ -61,9 +65,10 @@ const request = async (endpoint, options = {}) => {
     headers = {},
     body,
     params,
-    timeout = 15000, // 15 seconds default timeout
+    timeout = 60000, // 60 seconds default timeout for Gemini AI endpoints
     signal,
     _retry = false, // Track retry attempt to prevent infinite loops
+    _networkRetry = false,
     ...customConfig
   } = options;
 
@@ -142,7 +147,9 @@ const request = async (endpoint, options = {}) => {
         return await request(endpoint, { ...options, _retry: true });
       }
 
-      const errorMessage = responseData?.message || `Request failed with status ${response.status}`;
+      const errorMessage = typeof responseData === "object" && responseData?.message
+        ? responseData.message
+        : `Request failed with status ${response.status}`;
       throw new ApiError(response.status, errorMessage, responseData);
     }
 
@@ -152,6 +159,12 @@ const request = async (endpoint, options = {}) => {
     if (error.name === "AbortError") {
       throw new Error(`Request timed out after ${timeout}ms or was cancelled.`);
     }
+
+    // Safely retry GET requests ONCE on transient network drops
+    if (method === "GET" && !_networkRetry && error.name === "TypeError") {
+      return await request(endpoint, { ...options, _networkRetry: true });
+    }
+
     throw error;
   }
 };
@@ -167,3 +180,4 @@ export const api = {
 };
 
 export default api;
+

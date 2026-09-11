@@ -4,19 +4,29 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import mongoSanitize from "express-mongo-sanitize";
+import mongoose from "mongoose";
 import errorMiddleware from "./middleware/error.middleware.js";
 import STATUS_CODES from "./constants/statusCodes.js";
 
 const app = express();
 
-// 1. Helmet security headers
+// 1. Trust proxy for Railway / Vercel load balancer IP forwarding (CRITICAL FOR RATE LIMITING)
+app.set("trust proxy", 1);
+
+// 2. Helmet security headers
 app.use(helmet());
 
-// 2. CORS configuration restricted to FRONTEND_URL
-const frontendOrigins = String(process.env.FRONTEND_URL || "")
+// 3. CORS configuration restricted to FRONTEND_URL with localhost dev fallback
+const parsedFrontendOrigins = String(process.env.FRONTEND_URL || "")
   .split(",")
   .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
+
+const frontendOrigins = parsedFrontendOrigins.length > 0 
+  ? parsedFrontendOrigins 
+  : ["http://localhost:5173", "http://127.0.0.1:5173"];
+
 app.use(
   cors({
     origin: frontendOrigins,
@@ -24,14 +34,17 @@ app.use(
   })
 );
 
-// 3. Body parsers with 16kb restrictions
+// 4. Body parsers with 16kb restrictions
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 
-// 4. Cookie parser
+// 5. Cookie parser
 app.use(cookieParser());
 
-// 5. Morgan logger in development mode
+// 6. Express Mongo Sanitize against NoSQL injection
+app.use(mongoSanitize());
+
+// 7. Morgan logger in development mode
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
@@ -50,7 +63,22 @@ const limiter = rateLimit({
   },
 });
 
-// 6. Base Root Verification Route
+// 8. Dedicated Production Health Check Endpoint for Railway Zero-Downtime Probes
+app.get("/health", (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = dbState === 1 ? "connected" : dbState === 2 ? "connecting" : "disconnected";
+  
+  res.status(STATUS_CODES.OK).json({
+    success: true,
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    uptime: `${Math.floor(process.uptime())}s`,
+    database: dbStatus,
+  });
+});
+
+// 9. Base Root Verification Route
 app.get("/", (req, res) => {
   res.status(STATUS_CODES.OK).json({
     message: "Hello PathForge AI",
@@ -74,7 +102,7 @@ import opportunityRadarRouter from "./routes/opportunityRadar.routes.js";
 import ceoModeRouter from "./routes/ceoMode.routes.js";
 import settingsRouter from "./routes/settings.routes.js";
 
-// 7. Root router placeholder for API routes
+// 10. Root router placeholder for API routes
 const apiRouter = express.Router();
 apiRouter.get("/", (req, res) => {
   res.status(STATUS_CODES.OK).json({
@@ -97,7 +125,7 @@ apiRouter.use("/ceo-mode", ceoModeRouter);
 apiRouter.use("/settings", settingsRouter);
 app.use("/api/v1", apiRouter);
 
-// 8. Fallback for route not found
+// 11. Fallback for route not found
 app.use("*", (req, res, next) => {
   res.status(STATUS_CODES.NOT_FOUND).json({
     success: false,
@@ -105,8 +133,9 @@ app.use("*", (req, res, next) => {
   });
 });
 
-// 9. Global Error Middleware registered LAST
+// 12. Global Error Middleware registered LAST
 app.use(errorMiddleware);
 
 export { app };
 export default app;
+

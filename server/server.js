@@ -48,6 +48,16 @@ const handleGracefulShutdown = (signal) => {
   }
 };
 
-// Listen for termination signals
+// Listen for termination signals and uncaught errors
 process.on("SIGINT", () => handleGracefulShutdown("SIGINT"));
 process.on("SIGTERM", () => handleGracefulShutdown("SIGTERM"));
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection detected at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception thrown:", error.message, error.stack);
+  handleGracefulShutdown("uncaughtException");
+});
+
